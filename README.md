@@ -1,5 +1,4 @@
 <div align="center">
-<img src="resources/fox-new.png" alt="nxtscape-fox" width="40%">
 
 # The Open-source Agentic Browser.
 Nxtscape ("next-scape") is an open-source **agentic browser** – your privacy-first alternative to closed-source browsers (like Arc, Dia, Perplexity Comet). Built on Chromium, Nxtscape lets you run **Manus like agents** locally and boost your productivity with an AI-sidekick.
