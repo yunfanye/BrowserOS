@@ -115,7 +115,14 @@ def create_minimal_context(app_path: Path, chromium_src: Path, root_dir: Path, a
     # Override out_dir to match the actual location
     ctx.out_dir = out_dir_path.name
     
+    # Override get_app_path to return the actual app path for merge operations
+    def get_app_path_override():
+        return app_path
+    
+    ctx.get_app_path = get_app_path_override
+    
     log_info(f"Context created with out_dir: {ctx.out_dir}")
+    log_info(f"App path: {ctx.get_app_path()}")
     log_info(f"PKG-DMG path: {ctx.get_pkg_dmg_path()}")
     
     return ctx
