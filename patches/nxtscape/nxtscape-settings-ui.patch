@@ -1,4 +1,4 @@
-From d2592d8692c5c2e439617798bb9b97e33f9876c1 Mon Sep 17 00:00:00 2001
+From aaf6fb842007637034346c89eab3d3642d343262 Mon Sep 17 00:00:00 2001
 From: Nikhil Sonti <nikhilsv92@gmail.com>
 Date: Fri, 13 Jun 2025 16:00:31 -0700
 Subject: [PATCH] settings ui for byok
@@ -8,7 +8,7 @@ Subject: [PATCH] settings ui for byok
  chrome/browser/prefs/browser_prefs.cc         |  29 +
  chrome/browser/prefs/browser_prefs.h          |   2 +
  chrome/browser/resources/settings/BUILD.gn    |   1 +
- .../settings/nxtscape_page/nxtscape_page.html | 638 ++++++++++++++++++
+ .../settings/nxtscape_page/nxtscape_page.html | 641 ++++++++++++++++++
  .../settings/nxtscape_page/nxtscape_page.ts   | 267 ++++++++
  chrome/browser/resources/settings/route.ts    |   1 +
  chrome/browser/resources/settings/router.ts   |   1 +
@@ -16,7 +16,7 @@ Subject: [PATCH] settings ui for byok
  .../settings/settings_main/settings_main.html |   6 +
  .../settings/settings_main/settings_main.ts   |  15 +-
  .../settings/settings_menu/settings_menu.html |   6 +
- 12 files changed, 989 insertions(+), 4 deletions(-)
+ 12 files changed, 992 insertions(+), 4 deletions(-)
  create mode 100644 chrome/browser/resources/settings/nxtscape_page/nxtscape_page.html
  create mode 100644 chrome/browser/resources/settings/nxtscape_page/nxtscape_page.ts
 
@@ -131,10 +131,10 @@ index 6eb2b37837e97..1a8cd69860514 100644
      "ai_page/ai_logging_info_bullet.ts",
 diff --git a/chrome/browser/resources/settings/nxtscape_page/nxtscape_page.html b/chrome/browser/resources/settings/nxtscape_page/nxtscape_page.html
 new file mode 100644
-index 0000000000000..6bcd12ae547a9
+index 0000000000000..28e18b5f69f95
 --- /dev/null
 +++ b/chrome/browser/resources/settings/nxtscape_page/nxtscape_page.html
-@@ -0,0 +1,638 @@
+@@ -0,0 +1,641 @@
 +    <link rel="import" href="../controls/settings_toggle_button.html">
 +    <style include="cr-shared-style settings-shared md-select">
 +      .provider-header-section {
@@ -591,6 +591,9 @@ index 0000000000000..6bcd12ae547a9
 +                    on-change="onOpenAIModelChange_">
 +              <option value="gpt-4o">GPT-4o</option>
 +              <option value="gpt-4o-mini">GPT-4o Mini</option>
++              <option value="gpt-4.1">GPT-4.1</option>
++              <option value="gpt-4.1-nano">GPT-4.1 Nano</option>
++              <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
 +              <option value="o3-mini">o3 Mini</option>
 +              <option value="o4-mini">o4 Mini</option>
 +              <option value="o3">o3</option>
@@ -1049,14 +1052,14 @@ index 0000000000000..8c4421ef76e45
 +    SettingsNxtscapePageElement.is, SettingsNxtscapePageElement); 
 \ No newline at end of file
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
-index 2458ecb3791b0..1b43a902a38f5 100644
+index 2458ecb3791b0..275e8eafe33a2 100644
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
 @@ -183,6 +183,7 @@ function createRoutes(): SettingsRoutes {
    // Root pages.
    r.BASIC = new Route('/');
    r.ABOUT = new Route('/help', loadTimeData.getString('aboutPageTitle'));
-+  r.NXTSCAPE = new Route('/nxtscape', 'Nxtscape Settings');
++  r.NXTSCAPE = new Route('/browseros', 'BrowserOS Settings');
  
    r.SEARCH = r.BASIC.createSection(
        '/search', 'search', loadTimeData.getString('searchPageTitle'));
@@ -1146,17 +1149,17 @@ index 43fd55ea0b83c..433afef3be384 100644
  
    private onShowingSubpage_() {
 diff --git a/chrome/browser/resources/settings/settings_menu/settings_menu.html b/chrome/browser/resources/settings/settings_menu/settings_menu.html
-index 79aad7032abc7..b3a15b5b44637 100644
+index 79aad7032abc7..70651dd5e15c8 100644
 --- a/chrome/browser/resources/settings/settings_menu/settings_menu.html
 +++ b/chrome/browser/resources/settings/settings_menu/settings_menu.html
 @@ -57,6 +57,12 @@
            $i18n{peoplePageTitle}
            <cr-ripple></cr-ripple>
          </a>
-+        <a role="menuitem" id="nxtscape-menu" href="/nxtscape"
++        <a role="menuitem" id="nxtscape-menu" href="/browseros"
 +            class="cr-nav-menu-item">
 +          <cr-icon icon="[[aiPageIcon_]]"></cr-icon>
-+          Nxtscape
++          BrowserOS
 +          <cr-ripple></cr-ripple>
 +        </a>
          <a role="menuitem" id="autofill" href="/autofill"
