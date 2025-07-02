@@ -206,7 +206,7 @@ def build_main(
                 build(ctx)
 
                 # Run post-build tasks
-                run_postbuild(ctx)
+                # run_postbuild(ctx)
 
                 if slack_notifications:
                     notify_build_step(f"Completed building for {arch_name}")
