@@ -20,9 +20,9 @@
       <pubDate>Wed, 02 Jul 2025 07:53:08 -0700</pubDate>
       <link>https://nxtscape.ai</link>
       <enclosure
-        url="http://cdn.browseros.com/dmg/BrowserOS_v0.8.0_arm64.dmg"
-        sparkle:edSignature="tJ7pA5PujaYJZwPQVGwOxMHpmAeuD1ak69QWrDiFEZM14AFu+8R4og6xmxWMfozoZeK6YAEokQ+QlMbMEoyMDw==" 
-        length="127031835"
+        url="http://cdn.browseros.com/dmg/BrowserOS_v0.8.0_x64.dmg"
+        sparkle:edSignature="O/PfxxkT+GW0moUU9R59k3+wc1VASLegC+mOb85cXwnWds5u64UJfCr7tLaONknhXUAZA67qLEmJmYqLweguDw==" 
+        length="136470762"
         type="application/octet-stream" />
       <sparkle:minimumSystemVersion>10.15</sparkle:minimumSystemVersion>
     </item>
