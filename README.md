@@ -2,6 +2,7 @@
 
 # 
 <img src="https://storage.googleapis.com/nxtscape/resources/new-nxtscape-banner.png" alt="backed-by-yc" >
+(previously, Nxtscape)**
 
 ### Your browser, with AI superpowers 🚀
 
