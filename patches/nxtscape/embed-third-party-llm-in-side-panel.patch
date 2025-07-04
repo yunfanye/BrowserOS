@@ -1,11 +1,11 @@
-From 12260372f6aa8668db5329da9c5117a91b35cbad Mon Sep 17 00:00:00 2001
+From 6dd22eb014ff7122d6d8318948bf32db3b33f08f Mon Sep 17 00:00:00 2001
 From: Nikhil Sonti <nikhilsv92@gmail.com>
 Date: Sat, 28 Jun 2025 16:38:45 -0700
 Subject: [PATCH] embed third party LLM in side panel
 
 ---
  chrome/app/chrome_command_ids.h               |   2 +
- chrome/app/generated_resources.grd            |   5 +
+ chrome/app/generated_resources.grd            |   3 +
  .../browser/global_keyboard_shortcuts_mac.mm  |   2 +
  chrome/browser/ui/actions/chrome_action_id.h  |   3 +-
  chrome/browser/ui/browser_actions.cc          |  12 +
@@ -22,7 +22,7 @@ Subject: [PATCH] embed third party LLM in side panel
  .../third_party_llm_panel_coordinator.h       | 159 ++++
  .../customize_toolbar/customize_toolbar.mojom |   1 +
  .../customize_toolbar_handler.cc              |   6 +
- 18 files changed, 1002 insertions(+), 1 deletion(-)
+ 18 files changed, 1000 insertions(+), 1 deletion(-)
  create mode 100644 chrome/browser/ui/views/side_panel/third_party_llm/third_party_llm_panel_coordinator.cc
  create mode 100644 chrome/browser/ui/views/side_panel/third_party_llm/third_party_llm_panel_coordinator.h
 
@@ -40,21 +40,19 @@ index 7dbc937b376cc..91d055b22ce33 100644
  // Spell-check
  // Insert any additional suggestions before _LAST; these have to be consecutive.
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
-index 186d94b83cb9c..7ffa604ba0c51 100644
+index 186d94b83cb9c..444323aed7636 100644
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -8835,6 +8835,11 @@ Keep your key file in a safe place. You will need it to create new versions of y
-           Reading List
+@@ -8840,6 +8840,9 @@ Keep your key file in a safe place. You will need it to create new versions of y
+           Reading list
          </message>
        </if>
-+      <if expr="use_titlecase">
-+        <message name="IDS_THIRD_PARTY_LLM_TITLE" desc="Title for 3rd party LLM side panel">
-+          LLM sidekick
-+        </message>
-+      </if>
-       <if expr="not use_titlecase">
-         <message name="IDS_READ_LATER_TITLE" desc="Title of the Read later menu">
-           Reading list
++      <message name="IDS_THIRD_PARTY_LLM_TITLE" desc="Title for 3rd party LLM side panel">
++        LLM sidekick
++      </message>
+       <message name="IDS_READ_LATER_MENU_UNREAD_HEADER" desc="Header for section of unread Read later items.">
+         Unread
+       </message>
 diff --git a/chrome/browser/global_keyboard_shortcuts_mac.mm b/chrome/browser/global_keyboard_shortcuts_mac.mm
 index cbc0d472d9476..262d771e6b568 100644
 --- a/chrome/browser/global_keyboard_shortcuts_mac.mm
