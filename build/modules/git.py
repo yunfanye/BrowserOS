@@ -44,7 +44,10 @@ def setup_git(ctx: BuildContext) -> bool:
     log_info("📥 Syncing dependencies (this may take a while)...")
     # Windows gclient doesn't support --shallow flag
     if IS_WINDOWS:
-        run_command(["gclient", "sync", "-D", "--force", "--no-history"])
+        # Windows needs DEPOT_TOOLS_WIN_TOOLCHAIN=0 to use local Visual Studio
+        env = os.environ.copy()
+        env["DEPOT_TOOLS_WIN_TOOLCHAIN"] = "0"
+        run_command(["gclient.bat", "sync", "-D", "--no-history", "--shallow"], env=env)
     else:
         run_command(["gclient", "sync", "-D", "--no-history", "--shallow"])
     
