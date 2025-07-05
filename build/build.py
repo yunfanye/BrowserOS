@@ -23,6 +23,7 @@ from modules.string_replaces import apply_string_replacements
 from modules.inject import inject_version
 from modules.configure import configure
 from modules.compile import build
+from modules.gcs import upload_package_artifacts, upload_signed_artifacts
 
 # Platform-specific imports
 if IS_MACOS:
@@ -76,6 +77,7 @@ def build_main(
     chromium_src_dir: Optional[Path] = None,
     slack_notifications: bool = False,
     patch_interactive: bool = False,
+    upload_gcs: bool = True,  # Default to uploading to GCS
 ):
     """Main build orchestration"""
     log_info("🚀 Nxtscape Build System")
@@ -270,6 +272,10 @@ def build_main(
                 package(ctx)
                 if slack_notifications:
                     notify_build_step(f"[{ctx.architecture}] Completed DMG creation")
+                
+                # Upload to GCS after packaging
+                if upload_gcs:
+                    upload_package_artifacts(ctx)
 
             built_contexts.append(ctx)
 
@@ -327,6 +333,15 @@ def build_main(
                 package_universal(built_contexts)
                 if slack_notifications:
                     notify_build_step("[Universal] Completed DMG package creation")
+                
+                # Upload universal package to GCS
+                if upload_gcs:
+                    # Use the first context with universal architecture override
+                    universal_ctx = built_contexts[0]
+                    original_arch = universal_ctx.architecture
+                    universal_ctx.architecture = "universal"
+                    upload_package_artifacts(universal_ctx)
+                    universal_ctx.architecture = original_arch
 
         # Summary
         elapsed = time.time() - start_time
@@ -426,6 +441,12 @@ def build_main(
     default=False,
     help="Ask for confirmation before applying each patch",
 )
+@click.option(
+    "--no-gcs-upload",
+    is_flag=True,
+    default=False,
+    help="Skip uploading artifacts to Google Cloud Storage",
+)
 def main(
     config,
     clean,
@@ -442,6 +463,7 @@ def main(
     add_replace,
     string_replace,
     patch_interactive,
+    no_gcs_upload,
 ):
     """Simple build system for Nxtscape Browser"""
 
@@ -532,6 +554,7 @@ def main(
         chromium_src_dir=chromium_src,
         slack_notifications=slack_notifications,
         patch_interactive=patch_interactive,
+        upload_gcs=not no_gcs_upload,  # Invert the flag
     )
 
 
