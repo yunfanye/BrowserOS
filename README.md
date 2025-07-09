@@ -22,7 +22,7 @@
 
 </div>
 
-🌐 BrowserOS is an open-source agentic browser that runs AI agents locally. Your privacy-first alternative to Arc, Dia, and Perplexity Comet.
+🌐 BrowserOS is an open-source agentic browser that runs AI agents locally. **Your privacy-first alternative to Perplexity Comet**.
 
 🔒 Privacy first - use your own API keys or run local models with Ollama. Your data stays on your computer.
 
