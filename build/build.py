@@ -3,6 +3,7 @@
 Main build orchestrator for Nxtscape Browser
 """
 
+import os
 import sys
 import time
 import click
@@ -83,6 +84,11 @@ def build_main(
     """Main build orchestration"""
     log_info("🚀 Nxtscape Build System")
     log_info("=" * 50)
+    
+    # Set Windows-specific environment variables
+    if IS_WINDOWS:
+        os.environ["DEPOT_TOOLS_WIN_TOOLCHAIN"] = "0"
+        log_info("🔧 Set DEPOT_TOOLS_WIN_TOOLCHAIN=0 for Windows build")
 
     # Setup context
     root_dir = Path(__file__).parent.parent
