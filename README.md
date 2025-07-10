@@ -7,12 +7,12 @@
 ### Your browser, with AI superpowers 🚀
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-blue)](https://discord.gg/YKwjt5vuKr)
-[![Twitter](https://img.shields.io/twitter/follow/nxtscape?style=social)](https://twitter.com/nxtscape)
+[![Twitter](https://img.shields.io/twitter/follow/browswerOS_ai?style=social)](https://twitter.com/browseros_ai)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 <a href="https://bit.ly/nxtscape">
   <img src="https://img.shields.io/badge/Download-macOS-black?style=flat&logo=apple&logoColor=white" alt="Download for macOS (beta)" />
 </a>
-<a href="https://cdn.browseros.com/win/BrowserOS-installer.zip">
+<a href="https://bit.ly/browseros-windows">
   <img src="https://img.shields.io/badge/Download-Windows-0078D4?style=flat&logo=windows&logoColor=white" alt="Download for Windows (beta)" />
 </a>
 <br />
