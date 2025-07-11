@@ -112,16 +112,14 @@ def upload_package_artifacts(ctx: BuildContext) -> tuple[bool, List[str]]:
     
     artifacts = []
     
-    if IS_MACOS:
-        # Look for DMG files
-        dmg_dir = ctx.root_dir / "dmg"
-        if dmg_dir.exists():
-            artifacts.extend(dmg_dir.glob("*.dmg"))
-    
-    elif IS_WINDOWS:
-        # Look for installer and ZIP files
-        dist_dir = ctx.root_dir / "dist"
-        if dist_dir.exists():
+    # Look for files in the dist/<version> directory
+    dist_dir = ctx.get_dist_dir()
+    if dist_dir.exists():
+        if IS_MACOS:
+            # Look for DMG files
+            artifacts.extend(dist_dir.glob("*.dmg"))
+        elif IS_WINDOWS:
+            # Look for installer and ZIP files
             artifacts.extend(dist_dir.glob("*.exe"))
             artifacts.extend(dist_dir.glob("*.zip"))
     

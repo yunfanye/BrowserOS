@@ -104,7 +104,7 @@ def create_installer(ctx: BuildContext) -> bool:
         return False
     
     # Create output directory
-    output_dir = ctx.root_dir / "dist"
+    output_dir = ctx.get_dist_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate installer filename with version and architecture
@@ -135,7 +135,7 @@ def create_portable_zip(ctx: BuildContext) -> bool:
         return False
     
     # Create output directory
-    output_dir = ctx.root_dir / "dist"
+    output_dir = ctx.get_dist_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate ZIP filename with version and architecture

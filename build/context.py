@@ -228,3 +228,7 @@ class BuildContext:
     def get_base_identifier(self) -> str:
         """Get base identifier for components"""
         return "com.browseros"
+    
+    def get_dist_dir(self) -> Path:
+        """Get distribution output directory with version"""
+        return join_paths(self.root_dir, "dist", self.nxtscape_version)

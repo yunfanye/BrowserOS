@@ -598,7 +598,7 @@ def sign_app(ctx: BuildContext, create_dmg: bool = True) -> bool:
     # Setup DMG path if needed
     dmg_path = None
     if create_dmg:
-        dmg_dir = ctx.root_dir / "dmg"
+        dmg_dir = ctx.get_dist_dir()
         dmg_name = ctx.get_dmg_name(True)
         dmg_path = dmg_dir / dmg_name
 

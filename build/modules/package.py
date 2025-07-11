@@ -21,7 +21,7 @@ def package(ctx: BuildContext) -> bool:
     log_info("\n📀 Creating DMG package...")
     
     app_path = ctx.get_app_path()
-    dmg_dir = ctx.root_dir / "dmg"
+    dmg_dir = ctx.get_dist_dir()
     dmg_name = ctx.get_dmg_name()
     dmg_path = dmg_dir / dmg_name
     
@@ -246,10 +246,6 @@ def package_universal(contexts: List[BuildContext]) -> bool:
         log_error(f"Universal app not found: {universal_app_path}")
         return False
     
-    # Create DMG in root dmg directory
-    dmg_dir = contexts[0].root_dir / "dmg"
-    dmg_dir.mkdir(parents=True, exist_ok=True)
-    
     # Create a temporary universal context for DMG naming
     universal_ctx = BuildContext(
         root_dir=contexts[0].root_dir,
@@ -261,6 +257,10 @@ def package_universal(contexts: List[BuildContext]) -> bool:
         package=False,
         build=False,
     )
+    
+    # Create DMG in dist/<version> directory
+    dmg_dir = universal_ctx.get_dist_dir()
+    dmg_dir.mkdir(parents=True, exist_ok=True)
     
     # Use context's DMG naming
     dmg_name = universal_ctx.get_dmg_name()
