@@ -82,4 +82,4 @@ export const config = {
 
 ## License
 
-MIT
+AGPL-v3.0
