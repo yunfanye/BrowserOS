@@ -123,5 +123,5 @@ BrowserOS is open source under the [AGPL-3.0 license](LICENSE).
 ---
 
 <p align="center">
-Built with ❤️ from San Francisco. Inspired by <a href="https://github.com/browser-use/browser-use">browser-use</a>, <a href="https://github.com/browserbase/stagehand">Stagehand</a>, <a href="https://github.com/nanobrowser/nanobrowser">Nanobrowser</a> and of course only possible because of <a href="https://github.com/chromium/chromium">Chromium</a>.
+Built with ❤️ from San Francisco. Inspired by <a href="https://github.com/browser-use/browser-use">browser-use</a>, <a href="https://github.com/nanobrowser/nanobrowser">Nanobrowser</a> and of course only possible because of <a href="https://github.com/chromium/chromium">Chromium</a>.
 </p>
