@@ -1,0 +1,249 @@
+From 854e49826e860826723c15c539d72d8c2a7e1b8a Mon Sep 17 00:00:00 2001
+From: Nikhil Sonti <nikhilsv92@gmail.com>
+Date: Mon, 28 Jul 2025 12:01:51 -0700
+Subject: [PATCH] remove keychain request
+
+---
+ chrome/utility/importer/chrome_importer.cc | 167 ++-------------------
+ chrome/utility/importer/chrome_importer.h  |  13 +-
+ 2 files changed, 12 insertions(+), 168 deletions(-)
+
+diff --git a/chrome/utility/importer/chrome_importer.cc b/chrome/utility/importer/chrome_importer.cc
+index 9026dcc1ec6b1..5a7c392fd775a 100644
+--- a/chrome/utility/importer/chrome_importer.cc
++++ b/chrome/utility/importer/chrome_importer.cc
+@@ -20,9 +20,6 @@
+ #include "chrome/common/importer/importer_url_row.h"
+ #include "chrome/grit/generated_resources.h"
+ #include "chrome/utility/importer/favicon_reencode.h"
+-#include "components/os_crypt/sync/os_crypt.h"
+-#include "components/password_manager/core/browser/password_form.h"
+-#include "components/password_manager/core/browser/password_store/login_database.h"
+ #include "sql/database.h"
+ #include "sql/statement.h"
+ #include "ui/base/l10n/l10n_util.h"
+@@ -406,123 +403,15 @@ base::Time ChromeImporter::ChromeTimeToBaseTime(int64_t time) {
+ }
+ 
+ void ChromeImporter::ImportPasswords() {
+-  LOG(INFO) << "ChromeImporter: Starting passwords import";
+-
+-  // Set up encryption keys for decrypting passwords
+-  base::FilePath source_path = source_path_;
+-#if BUILDFLAG(IS_WIN)
+-  // On Windows, the path is different
+-  source_path = source_path_.DirName();
+-#endif
+-
+-  // Initialize encryption using the appropriate source path
+-  if (!SetEncryptionKey(source_path)) {
+-    LOG(ERROR) << "ChromeImporter: Failed to set encryption key for passwords";
+-    return;
+-  }
+-
+-  // First try the main Login Data file
+-  ImportPasswordsFromFile(base::FilePath(FILE_PATH_LITERAL("Login Data")));
+-
+-  // Then try the account-specific Login Data file if it exists
+-  ImportPasswordsFromFile(base::FilePath(FILE_PATH_LITERAL("Login Data For Account")));
+-
+-  LOG(INFO) << "ChromeImporter: Passwords import complete";
++  // Password import is disabled - users should use CSV import from chrome://password-manager/passwords
++  LOG(INFO) << "ChromeImporter: Password import is disabled. "
++            << "Please use CSV import from chrome://password-manager/passwords";
++  return;
+ }
+ 
+ void ChromeImporter::ImportPasswordsFromFile(const base::FilePath& password_filename) {
+-  base::FilePath passwords_path = source_path_.Append(password_filename);
+-  if (!base::PathExists(passwords_path)) {
+-    LOG(INFO) << "ChromeImporter: " << password_filename.value() << " file not found";
+-    return;
+-  }
+-
+-  // Create temporary directory for copying the database
+-  base::FilePath temp_directory;
+-  if (!base::CreateNewTempDirectory(base::FilePath::StringType(), &temp_directory)) {
+-    LOG(ERROR) << "ChromeImporter: Failed to create temp directory for passwords";
+-    return;
+-  }
+-
+-  // Copy the database file to avoid lock issues
+-  base::FilePath temp_passwords_path = temp_directory.Append(password_filename.BaseName());
+-  if (!base::CopyFile(passwords_path, temp_passwords_path)) {
+-    LOG(ERROR) << "ChromeImporter: Failed to copy " << password_filename.value() << " file";
+-    base::DeletePathRecursively(temp_directory);
+-    return;
+-  }
+-
+-  // Open the database using password manager's login database
+-  password_manager::LoginDatabase database(
+-      temp_passwords_path, password_manager::IsAccountStore(false));
+-
+-  if (!database.Init(base::NullCallback(), nullptr)) {
+-    LOG(ERROR) << "ChromeImporter: Failed to initialize login database";
+-    base::DeletePathRecursively(temp_directory);
+-    return;
+-  }
+-
+-  // Process regular logins
+-  std::vector<password_manager::PasswordForm> forms;
+-  bool success = database.GetAutofillableLogins(&forms);
+-  if (success) {
+-    LOG(INFO) << "ChromeImporter: Found " << forms.size() << " passwords";
+-    for (const auto& form : forms) {
+-      importer::ImportedPasswordForm imported_form;
+-      if (PasswordFormToImportedPasswordForm(form, imported_form)) {
+-        bridge_->SetPasswordForm(imported_form);
+-      }
+-    }
+-  }
+-
+-  // Process blocklisted logins
+-  std::vector<password_manager::PasswordForm> blocklist;
+-  success = database.GetBlocklistLogins(&blocklist);
+-  if (success && !blocklist.empty()) {
+-    LOG(INFO) << "ChromeImporter: Found " << blocklist.size() << " blocklisted passwords";
+-    for (const auto& form : blocklist) {
+-      importer::ImportedPasswordForm imported_form;
+-      if (PasswordFormToImportedPasswordForm(form, imported_form)) {
+-        bridge_->SetPasswordForm(imported_form);
+-      }
+-    }
+-  }
+-
+-  // Clean up temporary files
+-  base::DeletePathRecursively(temp_directory);
+-}
+-
+-bool ChromeImporter::PasswordFormToImportedPasswordForm(
+-    const password_manager::PasswordForm& form,
+-    importer::ImportedPasswordForm& imported_form) {
+-  // Skip forms with invalid schemes
+-  if (form.scheme != password_manager::PasswordForm::Scheme::kHtml &&
+-      form.scheme != password_manager::PasswordForm::Scheme::kBasic) {
+-    return false;
+-  }
+-
+-  // Set the scheme appropriately
+-  imported_form.scheme = form.scheme == password_manager::PasswordForm::Scheme::kHtml
+-                         ? importer::ImportedPasswordForm::Scheme::kHtml
+-                         : importer::ImportedPasswordForm::Scheme::kBasic;
+-
+-  // Skip inconsistent blocked forms that have credentials
+-  if (form.blocked_by_user &&
+-      (!form.username_value.empty() || !form.password_value.empty())) {
+-    return false;
+-  }
+-
+-  // Copy over all the relevant form fields
+-  imported_form.signon_realm = form.signon_realm;
+-  imported_form.url = form.url;
+-  imported_form.action = form.action;
+-  imported_form.username_element = form.username_element;
+-  imported_form.username_value = form.username_value;
+-  imported_form.password_element = form.password_element;
+-  imported_form.password_value = form.password_value;
+-  imported_form.blocked_by_user = form.blocked_by_user;
+-
+-  return true;
++  // Password import is disabled - this function is kept as a no-op for compatibility
++  return;
+ }
+ 
+ void ChromeImporter::ImportAutofillFormData() {
+@@ -592,44 +481,10 @@ void ChromeImporter::ImportAutofillFormData() {
+   LOG(INFO) << "ChromeImporter: Autofill form data import complete";
+ }
+ 
+-bool ChromeImporter::SetEncryptionKey(const base::FilePath& source_path) {
+-#if BUILDFLAG(IS_LINUX)
+-  // Set up crypt config for Linux
+-  std::unique_ptr<os_crypt::Config> config(new os_crypt::Config());
+-  config->product_name = l10n_util::GetStringUTF8(IDS_PRODUCT_NAME);
+-  config->should_use_preference = false;
+-  config->user_data_path = source_path;
+-  OSCrypt::SetConfig(std::move(config));
+-  return true;
+-#elif BUILDFLAG(IS_WIN)
+-  // On Windows, we need to obtain the encryption key from Local State
+-  base::FilePath local_state_path = source_path.Append(FILE_PATH_LITERAL("Local State"));
+-  if (!base::PathExists(local_state_path)) {
+-    LOG(ERROR) << "ChromeImporter: Local State file not found";
+-    return false;
+-  }
+-
+-  std::string local_state_content;
+-  if (!base::ReadFileToString(local_state_path, &local_state_content)) {
+-    LOG(ERROR) << "ChromeImporter: Failed to read Local State file";
+-    return false;
+-  }
+-
+-  std::optional<base::Value::Dict> local_state =
+-      base::JSONReader::ReadDict(local_state_content);
+-  if (!local_state) {
+-    LOG(ERROR) << "ChromeImporter: Failed to parse Local State JSON";
+-    return false;
+-  }
+-
+-  // For Mac and other platforms, we don't need to do anything special
+-  // as keychain is used automatically
+-  return true;
+-#else
+-  // For Mac, keychain is used automatically by OSCrypt
+-  return true;
+-#endif
+-}
++// Encryption key setup is disabled since password import is disabled
++// bool ChromeImporter::SetEncryptionKey(const base::FilePath& source_path) {
++//   return false;
++// }
+ 
+ void ChromeImporter::ImportExtensions() {
+   LOG(INFO) << "ChromeImporter: Starting extensions import";
+@@ -733,4 +588,4 @@ std::vector<std::string> ChromeImporter::GetExtensionsFromPreferencesFile(
+   }
+ 
+   return extension_ids;
+-}
+\ No newline at end of file
++}
+diff --git a/chrome/utility/importer/chrome_importer.h b/chrome/utility/importer/chrome_importer.h
+index 06317c522d5d0..25b49c7028e1c 100644
+--- a/chrome/utility/importer/chrome_importer.h
++++ b/chrome/utility/importer/chrome_importer.h
+@@ -25,13 +25,6 @@ namespace sql {
+ class Database;
+ }
+ 
+-namespace password_manager {
+-struct PasswordForm;
+-}
+-
+-namespace importer {
+-struct ImportedPasswordForm;
+-}
+ 
+ class ChromeImporter : public Importer {
+  public:
+@@ -53,10 +46,6 @@ class ChromeImporter : public Importer {
+   void ImportAutofillFormData();
+   void ImportExtensions();
+   void ImportPasswordsFromFile(const base::FilePath& password_filename);
+-  bool PasswordFormToImportedPasswordForm(
+-      const password_manager::PasswordForm& form,
+-      importer::ImportedPasswordForm& imported_form);
+-  bool SetEncryptionKey(const base::FilePath& source_path);
+ 
+   // Helper function to convert Chrome's time format to base::Time
+   base::Time ChromeTimeToBaseTime(int64_t time);
+@@ -88,4 +77,4 @@ class ChromeImporter : public Importer {
+   base::FilePath source_path_;
+ };
+ 
+-#endif  // CHROME_UTILITY_IMPORTER_CHROME_IMPORTER_H_
+\ No newline at end of file
++#endif  // CHROME_UTILITY_IMPORTER_CHROME_IMPORTER_H_
+-- 
+2.49.0
+
