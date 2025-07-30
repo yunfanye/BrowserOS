@@ -42,9 +42,10 @@
  */
 
 import { ExecutionContext } from '@/lib/runtime/ExecutionContext';
-import { MessageManager, MessageType } from '@/lib/runtime/MessageManager';
+import { MessageManager } from '@/lib/runtime/MessageManager';
 import { ToolManager } from '@/lib/tools/ToolManager';
 import { createPlannerTool } from '@/lib/tools/planning/PlannerTool';
+import { createTodoManagerTool } from '@/lib/tools/planning/TodoManagerTool';
 import { createDoneTool } from '@/lib/tools/utils/DoneTool';
 import { createNavigationTool } from '@/lib/tools/navigation/NavigationTool';
 import { createFindElementTool } from '@/lib/tools/navigation/FindElementTool';
@@ -54,14 +55,19 @@ import { createSearchTool } from '@/lib/tools/navigation/SearchTool';
 import { createRefreshStateTool } from '@/lib/tools/navigation/RefreshStateTool';
 import { createTabOperationsTool } from '@/lib/tools/tab/TabOperationsTool';
 import { createGroupTabsTool } from '@/lib/tools/tab/GroupTabsTool';
+import { createGetSelectedTabsTool } from '@/lib/tools/tab/GetSelectedTabsTool';
 import { createClassificationTool } from '@/lib/tools/classification/ClassificationTool';
 import { createValidatorTool } from '@/lib/tools/validation/ValidatorTool';
+import { createScreenshotTool } from '@/lib/tools/utils/ScreenshotTool';
+import { createExtractTool } from '@/lib/tools/extraction/ExtractTool';
+import { createResultTool } from '@/lib/tools/result/ResultTool';
 import { generateSystemPrompt } from './BrowserAgent.prompt';
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
 import { EventProcessor } from '@/lib/events/EventProcessor';
 import { PLANNING_CONFIG } from '@/lib/tools/planning/PlannerTool.config';
 import { Abortable, AbortError } from '@/lib/utils/Abortable';
 import { formatToolOutput } from '@/lib/tools/formatToolOutput';
+import { formatTodoList } from '@/lib/tools/utils/formatTodoList';
 
 // Type Definitions
 interface Plan {
@@ -79,9 +85,15 @@ interface ClassificationResult {
 
 export class BrowserAgent {
   // Constants for explicit control
-  private static readonly MAX_STEPS_FOR_SIMPLE_TASKS = 5;
+  private static readonly MAX_STEPS_FOR_SIMPLE_TASKS = 10;
   private static readonly MAX_STEPS_FOR_COMPLEX_TASKS = PLANNING_CONFIG.STEPS_PER_PLAN;
-  private static readonly MAX_TOTAL_STEPS = 20;
+
+  // Total steps the entire execution can run for, including sub-loops
+  private static readonly MAX_TOTAL_STEPS = 100;
+
+  // this is the max steps for sub-loop for executing TODOs
+  // let's keep it at 15, if it's not done in this, let's re-plan.
+  private static readonly MAX_STEPS_FOR_EXECUTING_TODOS_SUB_LOOP  = 15; 
 
   private readonly executionContext: ExecutionContext;
   private readonly toolManager: ToolManager;
@@ -97,7 +109,7 @@ export class BrowserAgent {
     return this.executionContext.messageManager; 
   }
   
-  private get events(): EventProcessor { 
+  private get eventEmitter(): EventProcessor { 
     return this.executionContext.getEventProcessor(); 
   }
 
@@ -125,7 +137,7 @@ export class BrowserAgent {
       const message = classification.is_simple_task 
         ? 'Executing the task...'
         : 'Creating a step-by-step plan to complete the task';
-      this.events.info(message);
+      this.eventEmitter.info(message);
 
       // 3. DELEGATE: Route to the correct execution strategy
       if (classification.is_simple_task) {
@@ -133,6 +145,9 @@ export class BrowserAgent {
       } else {
         await this._executeMultiStepStrategy(task);
       }
+
+      // 4. FINALISE: Generate final result
+      await this._generateTaskResult(task);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
@@ -142,7 +157,7 @@ export class BrowserAgent {
                                  (error instanceof Error && error.name === "AbortError");
       
       if (!isUserCancellation) {
-        this.events.error(`Oops! Got a fatal error when executing task: ${errorMessage}`, true);  // Mark as fatal error
+        this.eventEmitter.error(`Oops! Got a fatal error when executing task: ${errorMessage}`, true);  // Mark as fatal error
       }
       
       throw error;
@@ -153,6 +168,9 @@ export class BrowserAgent {
     // Clear previous system prompts
     this.messageManager.removeSystemMessages();
 
+    // Set the current task in execution context
+    this.executionContext.setCurrentTask(task);
+
     const systemPrompt = generateSystemPrompt(this.toolManager.getDescriptions());
     this.messageManager.addSystem(systemPrompt);
     this.messageManager.addHuman(task);
@@ -161,6 +179,7 @@ export class BrowserAgent {
   private _registerTools(): void {
     // Register all tools first
     this.toolManager.register(createPlannerTool(this.executionContext));
+    this.toolManager.register(createTodoManagerTool(this.executionContext));
     this.toolManager.register(createDoneTool());
     
     // Navigation tools
@@ -174,9 +193,17 @@ export class BrowserAgent {
     // Tab tools
     this.toolManager.register(createTabOperationsTool(this.executionContext));
     this.toolManager.register(createGroupTabsTool(this.executionContext));
+    this.toolManager.register(createGetSelectedTabsTool(this.executionContext));
     
     // Validation tool
     this.toolManager.register(createValidatorTool(this.executionContext));
+
+    // util tools
+    this.toolManager.register(createScreenshotTool(this.executionContext));
+    this.toolManager.register(createExtractTool(this.executionContext));
+    
+    // Result tool
+    this.toolManager.register(createResultTool(this.executionContext));
     
     // Register classification tool last with all tool descriptions
     const toolDescriptions = this.toolManager.getDescriptions();
@@ -185,7 +212,7 @@ export class BrowserAgent {
 
   @Abortable
   private async _classifyTask(task: string): Promise<ClassificationResult> {
-    this.events.info('Analyzing task complexity...');
+    this.eventEmitter.info('Analyzing task complexity...');
     
     const classificationTool = this.toolManager.get('classification_tool');
     if (!classificationTool) {
@@ -196,20 +223,20 @@ export class BrowserAgent {
     const args = { task };
     
     try {
-      this.events.executingTool('classification_tool', args);
+      this.eventEmitter.executingTool('classification_tool', args);
       const result = await classificationTool.func(args);
       const parsedResult = JSON.parse(result);
       
       if (parsedResult.ok) {
         const classification = JSON.parse(parsedResult.output);
         const classification_formatted_output = formatToolOutput('classification_tool', parsedResult);
-        this.events.toolResult('classification_tool', true, classification_formatted_output);
+        this.eventEmitter.toolEnd('classification_tool', true, classification_formatted_output);
         return { is_simple_task: classification.is_simple_task };
       }
     } catch (error) {
       const errorResult = { ok: false, error: 'Classification failed' };
       const error_formatted_output = formatToolOutput('classification_tool', errorResult);
-      this.events.toolResult('classification_tool', false, error_formatted_output);
+      this.eventEmitter.toolEnd('classification_tool', false, error_formatted_output);
     }
     
     // Default to complex task on any failure
@@ -221,24 +248,19 @@ export class BrowserAgent {
   // ===================================================================
   @Abortable  // Checks at method start
   private async _executeSimpleTaskStrategy(task: string): Promise<void> {
-    this.events.info(`Executing as a simple task. Max attempts: ${BrowserAgent.MAX_STEPS_FOR_SIMPLE_TASKS}`);
+    this.eventEmitter.debug(`Executing as a simple task. Max attempts: ${BrowserAgent.MAX_STEPS_FOR_SIMPLE_TASKS}`);
 
     for (let attempt = 1; attempt <= BrowserAgent.MAX_STEPS_FOR_SIMPLE_TASKS; attempt++) {
       this.checkIfAborted();  // Manual check in loop
 
-      this.events.debug(`Attempt ${attempt}/${BrowserAgent.MAX_STEPS_FOR_SIMPLE_TASKS}: Executing task...`);
+      this.eventEmitter.debug(`Attempt ${attempt}/${BrowserAgent.MAX_STEPS_FOR_SIMPLE_TASKS}: Executing task...`);
 
       const instruction = `The user's goal is: "${task}". Please take the next best action to complete this goal and call the 'done_tool' when finished.`;
       const isTaskCompleted = await this._executeSingleTurn(instruction);
 
       if (isTaskCompleted) {
-        this.events.complete('Task completed successfully.');
-        return;  // SUCCESS
-      }
-      
-      if (attempt < BrowserAgent.MAX_STEPS_FOR_SIMPLE_TASKS) {
-        this.events.info(`Task not completed unfortunately.`); 
-      }
+        return;  // SUCCESS - task result will be generated in execute()
+      }      
     }
 
     throw new Error(`Task failed to complete after ${BrowserAgent.MAX_STEPS_FOR_SIMPLE_TASKS} attempts.`);
@@ -249,40 +271,58 @@ export class BrowserAgent {
   // ===================================================================
   @Abortable
   private async _executeMultiStepStrategy(task: string): Promise<void> {
-    this.events.info('Executing as a multi-step task.');
+    this.eventEmitter.debug('Executing as a complex multi-step task. Max steps: ' + BrowserAgent.MAX_TOTAL_STEPS);
     let step_index = 0;
+    const todoStore = this.executionContext.todoStore;
 
     while (step_index < BrowserAgent.MAX_TOTAL_STEPS) {
       this.checkIfAborted();  // Check if the user has cancelled the task before executing
+
+      // Inject current TODO state
+      const todoXml = await this._fetchTodoXml();
+      if (todoXml !== '<todos></todos>') {  // Only add if there are TODOs
+        this.messageManager.addAI(`Current TODO list:\n${todoXml}`);
+        // Show remaining TODOs to user at start of planning cycle
+        this.eventEmitter.info(formatTodoList(todoStore.getJson()));
+      }
 
       // 1. PLAN: Create a new plan for the next few steps
       const plan = await this._createMultiStepPlan(task);
       if (plan.steps.length === 0) {
         throw new Error('Planning failed. Could not generate next steps.');
       }
-      this.events.info(`Created new plan: ${JSON.stringify(plan, null, 2)}`);
 
-      // 2. EXECUTE: Execute the steps from the current plan
-      for (const step of plan.steps) {
-        if (step_index >= BrowserAgent.MAX_TOTAL_STEPS) break;  // Exit if we hit the global limit
+      // Convert plan steps to TODOs (simple append)
+      await this._updateTodosFromPlan(plan);
 
-        this.checkIfAborted();  // Check if the user has cancelled the task before executing
+      // Show TODO list after plan creation
+      this.eventEmitter.info(formatTodoList(todoStore.getJson()));
 
-        step_index++;
-        this.events.info(`Step ${step_index}: ${step.action}`);
+      // 2. EXECUTE: Execute TODOs
+      let sub_step_index = 0;
+      while (sub_step_index < BrowserAgent.MAX_STEPS_FOR_EXECUTING_TODOS_SUB_LOOP && !todoStore.isAllDoneOrSkipped()) {
+        this.checkIfAborted();
         
-        const isTaskCompleted = await this._executeSingleTurn(step.action);
+        const todo = todoStore.getNextTodo();
+        if (!todo) break;
+        
+        sub_step_index++;
+        step_index++; 
 
+        this.eventEmitter.info(`Executing - ${todo.content}...`);
+        
+        const instruction = `Current TODO: "${todo.content}". Complete this TODO. If TODO is done, mark it as complete using todo_manager. If not, let's continue executing on this TODO.`;
+        const isTaskCompleted = await this._executeSingleTurn(instruction);
+        
         if (isTaskCompleted) {
-          this.events.complete('Task completed successfully.');
-          return;  // SUCCESS
+          return;  // SUCCESS - task result will be generated in execute()
         }
       }
       
       // 3. VALIDATE: Check if task is complete after plan segment
       const validationResult = await this._validateTaskCompletion(task);
       if (validationResult.isComplete) {
-        this.events.complete(`Task validated as complete: ${validationResult.reasoning}`);
+        // Task is complete - result will be generated in execute()
         return;
       }
       
@@ -292,7 +332,7 @@ export class BrowserAgent {
         this.messageManager.addAI(validationMessage);
         
         // Emit validation result to debug events
-        this.events.debug(`Validation result: ${JSON.stringify(validationResult, null, 2)}`);
+        this.eventEmitter.debug(`Validation result: ${JSON.stringify(validationResult, null, 2)}`);
       }
       
     }
@@ -346,19 +386,27 @@ export class BrowserAgent {
     
     let accumulatedChunk: AIMessageChunk | undefined;
     let accumulatedText = '';
+    let hasStartedThinking = false;
 
-    this.events.startThinking();
     for await (const chunk of stream) {
       this.checkIfAborted();  // Manual check during streaming
 
       if (chunk.content && typeof chunk.content === 'string') {
-        this.events.streamThought(chunk.content);
+        // Start thinking on first real content
+        if (!hasStartedThinking) {
+          this.eventEmitter.startThinking();
+          hasStartedThinking = true;
+        }
+        
+        this.eventEmitter.streamThoughtDuringThinking(chunk.content);
         accumulatedText += chunk.content;
       }
       accumulatedChunk = !accumulatedChunk ? chunk : accumulatedChunk.concat(chunk);
     }
-    if(accumulatedText!='') {
-        this.events.finishThinking(accumulatedText);
+    
+    // Only finish thinking if we started and have content
+    if (hasStartedThinking && accumulatedText.trim()) {
+      this.eventEmitter.finishThinking(accumulatedText);
     }
     
     if (!accumulatedChunk) return new AIMessage({ content: '' });
@@ -384,23 +432,38 @@ export class BrowserAgent {
         continue;
       }
 
-      this.events.executingTool(toolName, args);
+      this.eventEmitter.executingTool(toolName, args);
       const result = await tool.func(args);
       const parsedResult = JSON.parse(result);
       
       // Format the tool output for display
       const displayMessage = formatToolOutput(toolName, parsedResult);
-      this.events.toolResult(toolName, parsedResult.ok, displayMessage);
+      this.eventEmitter.debug('Executing tool: ' + toolName + ' result: ' + displayMessage);
+      
+      // Emit tool result for UI display (always shown)
+      this.eventEmitter.emitToolResult(toolName, result);
+
+      // Add the result back to the message history for context
+      // add toolMessage before systemReminders as openAI expects each 
+      // tool call to be followed by toolMessage
+      this.messageManager.addTool(result, toolCallId);
 
       // Special handling for refresh_browser_state tool, add the browser state to the message history
       if (toolName === 'refresh_browser_state' && parsedResult.ok) {
-        // Remove previous browser state messages
-        this.messageManager.removeMessagesByType(MessageType.BROWSER_STATE);
-        this.messageManager.addBrowserState(parsedResult.output);
+        // Add browser state as a system reminder that LLM should not print
+        this.messageManager.addSystemReminder(parsedResult.output);
       }
 
-      // Add the result back to the message history for context
-      this.messageManager.addTool(result, toolCallId);
+      // Special handling for todo_manager tool, add system reminder for mutations
+      if (toolName === 'todo_manager' && parsedResult.ok && args.action !== 'list') {
+        const todoStore = this.executionContext.todoStore;
+        this.messageManager.addSystemReminder(
+          `TODO list updated. Current state:\n${todoStore.getXml()}`
+        );
+        // Show updated TODO list to user
+        this.eventEmitter.info(formatTodoList(todoStore.getJson()));
+      }
+
 
       if (toolName === 'done_tool' && parsedResult.ok) {
         wasDoneToolCalled = true;
@@ -417,13 +480,13 @@ export class BrowserAgent {
       max_steps: BrowserAgent.MAX_STEPS_FOR_COMPLEX_TASKS
     };
 
-    this.events.executingTool('planner_tool', args);
+    this.eventEmitter.executingTool('planner_tool', args);
     const result = await plannerTool.func(args);
     const parsedResult = JSON.parse(result);
     
     // Format the planner output
     const planner_formatted_output = formatToolOutput('planner_tool', parsedResult);
-    this.events.toolResult('planner_tool', parsedResult.ok, planner_formatted_output);
+    this.eventEmitter.toolEnd('planner_tool', parsedResult.ok, planner_formatted_output);
 
     if (parsedResult.ok && parsedResult.output?.steps) {
       return { steps: parsedResult.output.steps };
@@ -447,13 +510,13 @@ export class BrowserAgent {
 
     const args = { task };
     try {
-      this.events.executingTool('validator_tool', args);
+      this.eventEmitter.executingTool('validator_tool', args);
       const result = await validatorTool.func(args);
       const parsedResult = JSON.parse(result);
       
       // Format the validator output
       const validator_formatted_output = formatToolOutput('validator_tool', parsedResult);
-      this.events.toolResult('validator_tool', parsedResult.ok, validator_formatted_output);
+      this.eventEmitter.toolEnd('validator_tool', parsedResult.ok, validator_formatted_output);
       
       if (parsedResult.ok) {
         // Parse the validation data from output
@@ -467,7 +530,7 @@ export class BrowserAgent {
     } catch (error) {
       const errorResult = { ok: false, error: 'Validation failed' };
       const error_formatted_output = formatToolOutput('validator_tool', errorResult);
-      this.events.toolResult('validator_tool', false, error_formatted_output);
+      this.eventEmitter.toolEnd('validator_tool', false, error_formatted_output);
     }
     
     return {
@@ -475,5 +538,69 @@ export class BrowserAgent {
       reasoning: 'Validation failed - continuing execution',
       suggestions: []
     };
+  }
+
+  /**
+   * Generate and emit task result using ResultTool
+   */
+  private async _generateTaskResult(task: string): Promise<void> {
+    const resultTool = this.toolManager.get('result_tool');
+    if (!resultTool) {
+      return;
+    }
+
+    try {
+      const args = { task };
+      const result = await resultTool.func(args);
+      const parsedResult = JSON.parse(result);
+      
+      if (parsedResult.ok && parsedResult.output) {
+        const { success, message } = parsedResult.output;
+        this.eventEmitter.emitTaskResult(success, message);
+      } else {
+        // Fallback on error
+        this.eventEmitter.emitTaskResult(true, 'Task completed.');
+      }
+    } catch (error) {
+      // Fallback on error
+      this.eventEmitter.emitTaskResult(true, 'Task completed.');
+    }
+  }
+
+  /**
+   * Fetch current TODO list as XML
+   */
+  private async _fetchTodoXml(): Promise<string> {
+    const todoTool = this.toolManager.get('todo_manager');
+    if (!todoTool) {
+      return '<todos></todos>';
+    }
+    
+    try {
+      const result = await todoTool.func({ action: 'list' });
+      const parsedResult = JSON.parse(result);
+      return parsedResult.ok ? parsedResult.output : '<todos></todos>';
+    } catch (error) {
+      return '<todos></todos>';
+    }
+  }
+
+  /**
+   * Update TODOs from plan steps (simple append)
+   */
+  private async _updateTodosFromPlan(plan: Plan): Promise<void> {
+    // Simple append - just add the plan steps as new TODOs
+    const todos = plan.steps.map(step => ({
+      content: step.action
+    }));
+    
+    // Call todo_manager tool with add_multiple action
+    const todoTool = this.toolManager.get('todo_manager');
+    if (todoTool && todos.length > 0) {
+      const args = { action: 'add_multiple' as const, todos };
+      await todoTool.func(args);
+      
+      // System reminder will be added by _processToolCalls special handling
+    }
   }
 }

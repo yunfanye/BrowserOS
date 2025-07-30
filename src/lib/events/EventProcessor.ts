@@ -1,4 +1,5 @@
 import { EventBus } from '@/lib/events/EventBus';
+import { formatToolOutput } from '@/lib/tools/formatToolOutput';
 
 /**
  * High-level event processor for BrowserAgent
@@ -32,7 +33,7 @@ export class EventProcessor {
   /**
    * Stream agent response content
    */
-  streamThought(content: string): void {
+  streamThoughtDuringThinking(content: string): void {
     if (!this.currentMessageId) return;
     
     this.eventBus.emitSegmentChunk(
@@ -73,9 +74,9 @@ export class EventProcessor {
   }
 
   /**
-   * Emit tool execution result
+   * Emit tool execution end (for debug mode)
    */
-  toolResult(toolName: string, success: boolean, summary?: string): void {
+  toolEnd(toolName: string, success: boolean, summary?: string): void {
     const displayName = this._getToolDisplayInfo(toolName).name;
     
     this.eventBus.emitToolEnd({
@@ -88,11 +89,34 @@ export class EventProcessor {
   }
 
   /**
-   * Emit completion
+   * Emit tool result for display (always shown)
    */
-  complete(message?: string): void {
-    this.eventBus.emitComplete(true, message || 'Task completed successfully', 'BrowserAgent');
+  emitToolResult(toolName: string, result: string): void {
+    const displayName = this._getToolDisplayInfo(toolName).name;
+    
+    // Parse result to get formatted content
+    let parsedResult;
+    let success = false;
+    try {
+      parsedResult = JSON.parse(result);
+      success = parsedResult.ok || false;
+    } catch {
+      // If not JSON, create a simple result object
+      parsedResult = { ok: true, output: result };
+      success = true;
+    }
+    
+    const formattedContent = formatToolOutput(toolName, parsedResult);
+    
+    this.eventBus.emitToolResult({
+      toolName,
+      displayName,
+      content: formattedContent,
+      success,
+      isJson: true
+    }, 'BrowserAgent');
   }
+
 
   /**
    * Emit info message
@@ -113,6 +137,13 @@ export class EventProcessor {
    */
   debug(message: string, data?: any): void {
     this.eventBus.emitDebug(message, data, 'BrowserAgent');
+  }
+
+  /**
+   * Emit task result summary
+   */
+  emitTaskResult(success: boolean, message: string): void {
+    this.eventBus.emitTaskResult(success, message, 'BrowserAgent');
   }
 
   // Private helper methods
@@ -145,7 +176,14 @@ export class EventProcessor {
       'tab_operations_tool': {
         name: 'Tab Operations',
         icon: '📑',
-        description: (args) => args?.operation || 'Managing tabs'
+        description: (args) => {
+          if (args?.action === 'list') return 'Listing tabs in current window';
+          if (args?.action === 'list_all') return 'Listing all tabs';
+          if (args?.action === 'new') return 'Creating new tab';
+          if (args?.action === 'switch') return 'Switching tabs';
+          if (args?.action === 'close') return 'Closing tabs';
+          return args?.action || 'Managing tabs';
+        }
       },
       'done_tool': {
         name: 'Completion',

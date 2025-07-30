@@ -12,11 +12,12 @@ export const StreamEventTypeSchema = z.enum([
   'tool.start',         // Tool execution started
   'tool.stream',        // Tool streaming output
   'tool.end',           // Tool completed
+  'tool.result',        // Tool result for display (always shown)
   'system.message',     // System messages
   'system.thinking',    // Thinking/progress messages (replaceable)
   'system.error',       // Error messages
-  'system.complete',    // Task complete
   'system.cancel',      // Task cancelled
+  'task.result',        // Task execution result summary
   'debug.message'       // Debug messages
 ]);
 
@@ -76,6 +77,14 @@ export const ToolEndDataSchema = z.object({
   success: z.boolean()  // Whether tool succeeded
 });
 
+export const ToolResultDataSchema = z.object({
+  toolName: z.string(),  // Tool name
+  displayName: z.string(),  // User-friendly display name
+  content: z.string(),  // Markdown formatted result content
+  success: z.boolean(),  // Whether tool succeeded
+  isJson: z.boolean().optional()  // Whether content was originally JSON
+});
+
 export const SystemMessageDataSchema = z.object({
   message: z.string(),  // System message
   level: z.enum(['info', 'warning', 'error']).default('info')  // Message level
@@ -92,10 +101,6 @@ export const SystemErrorDataSchema = z.object({
   fatal: z.boolean().default(false)  // Whether error is fatal
 });
 
-export const SystemCompleteDataSchema = z.object({
-  success: z.boolean(),  // Whether task succeeded
-  message: z.string().optional()  // Completion message
-});
 
 export const SystemCancelDataSchema = z.object({
   reason: z.string().optional(),  // Cancellation reason
@@ -105,6 +110,11 @@ export const SystemCancelDataSchema = z.object({
 export const DebugMessageDataSchema = z.object({
   message: z.string(),  // Debug message
   data: z.unknown().optional()  // Additional debug data
+});
+
+export const TaskResultDataSchema = z.object({
+  success: z.boolean(),  // Whether task succeeded
+  message: z.string()  // Markdown-formatted result summary
 });
 
 /**
@@ -339,6 +349,14 @@ export class EventBus extends EventEmitter {
     });
   }
 
+  emitToolResult(toolData: z.infer<typeof ToolResultDataSchema>, source?: string): void {
+    this.emitStreamEvent({
+      type: 'tool.result',
+      source,
+      data: toolData
+    });
+  }
+
   emitSystemMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', source?: string): void {
     this.emitStreamEvent({
       type: 'system.message',
@@ -363,13 +381,6 @@ export class EventBus extends EventEmitter {
     });
   }
 
-  emitComplete(success: boolean, message?: string, source?: string): void {
-    this.emitStreamEvent({
-      type: 'system.complete',
-      source,
-      data: { success, message }
-    });
-  }
 
   emitCancel(reason?: string, userInitiated: boolean = true, source?: string): void {
     this.emitStreamEvent({
@@ -387,6 +398,14 @@ export class EventBus extends EventEmitter {
         data: { message, data }
       });
     }
+  }
+
+  emitTaskResult(success: boolean, message: string, source?: string): void {
+    this.emitStreamEvent({
+      type: 'task.result',
+      source,
+      data: { success, message }
+    });
   }
 
   // Alias methods for backward compatibility

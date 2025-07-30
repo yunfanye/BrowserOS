@@ -29,6 +29,7 @@ export class BrowserStateMessage extends AIMessage {
   }
 }
 
+
 // Read-only view for tools
 export class MessageManagerReadOnly {
   constructor(private messageManager: MessageManager) {}
@@ -86,8 +87,16 @@ export class MessageManager {
     this._trimIfNeeded();
   }
 
+
   addTool(content: string, toolCallId: string): void {
     this.add(new ToolMessage(content, toolCallId));
+    this._trimIfNeeded();
+  }
+
+  addSystemReminder(content: string): void {
+    // Add system message with system-reminder tags
+    // For Anthropic, you can't have SystemMessage after first message
+    this.add(new HumanMessage(`<system-reminder>${content}</system-reminder>`));
     this._trimIfNeeded();
   }
 

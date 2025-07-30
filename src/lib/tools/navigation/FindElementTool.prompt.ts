@@ -1,6 +1,8 @@
 // TODO(NTN): Pass the real format of clickable and typeable elements to the LLM.
 export const findElementPrompt = `You are an expert at finding elements on web pages.
 
+When the user's overall goal is provided, use it to better understand which element they're looking for.
+
 Your task is to find the element that best matches the user's description.
 
 **ELEMENT FORMAT:**
@@ -19,6 +21,7 @@ Typeable elements (<T>):
 1. The nodeId is the number inside square brackets [n] - this is what you return as index
 2. <C> means clickable, <T> means typeable
 3. Consider all information: tag, visible text (in quotes), context (ctx), path, and attributes (attr)
+4. (ctx) represents nearby text around that element, which can give some additional information of whats around it.
 4. Choose the SINGLE BEST match if multiple candidates exist
 5. Return high confidence for exact matches, medium for good matches, low for uncertain matches
 

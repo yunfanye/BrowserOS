@@ -52,19 +52,10 @@ export function StreamingMessageDisplay({
     <div className={cn(styles.container, className)}>
       {/* Display all messages including streaming ones */}
       {filteredMessages.map((message, index) => {
-        // Check if this is a cancel/complete message that shouldn't show spinner
-        const isCancelOrComplete = message.type === 'system' && (
-          message.content.includes('✋ Task paused') || 
-          message.content.includes('✅ Task completed') ||
-          message.content.includes('❌ Task failed')
-        );
-        
         return (
           <MessageItem 
             key={message.id} 
             message={message} 
-            // Show spinner on system message only if it's the last message and not a cancel/complete message
-            showSystemSpinner={message.type === 'system' && index === filteredMessages.length - 1 && !isCancelOrComplete}
           />
         );
       })}
@@ -76,11 +67,9 @@ export function StreamingMessageDisplay({
  * Individual message item component
  */
 function MessageItem({ 
-  message, 
-  showSystemSpinner = false 
+  message
 }: { 
-  message: Message; 
-  showSystemSpinner?: boolean 
+  message: Message
 }): JSX.Element {
   // Don't render messages with no content
   if (!message.content && message.type !== 'streaming-tool' && message.type !== 'tool') {
@@ -92,12 +81,12 @@ function MessageItem({
       case 'user':
         return '👤'
       case 'system':
-        return '🚀'
+        return '✨'
       case 'thinking':
         return '💭'
       case 'llm':
       case 'streaming-llm':
-        return '🦊'
+        return '💭'
       case 'tool':
       case 'streaming-tool':
         return '🛠️'
@@ -118,7 +107,7 @@ function MessageItem({
             )}
             {message.type === 'streaming-tool' && !message.isComplete && (
               <span className={styles.toolStatus}>
-                <span className={styles.spinner}>⚡</span> Working...
+                Working...
               </span>
             )}
           </div>
@@ -128,8 +117,8 @@ function MessageItem({
                 // Show raw streaming content for tools
                 <pre className={styles.streamingContent}>{message.content}</pre>
               ) : (
-                // Show formatted content for completed tools
-                <MarkdownContent content={message.content} />
+                // Show formatted content for completed tools (compact for tool results)
+                <MarkdownContent content={message.content} compact={true} />
               )}
             </div>
           )}
@@ -145,8 +134,29 @@ function MessageItem({
       }
       return (
         <div className={styles.messageText}>
-          <MarkdownContent content={message.content} forceMarkdown={true} />
-          {!message.isComplete && message.content && <span className={styles.cursor}>|</span>}
+          {!message.isComplete ? (
+            // STREAMING: Render as plain text to avoid partial markdown issues
+            <div className={styles.streamingContent}>
+              <pre style={{ 
+                whiteSpace: 'pre-wrap', 
+                wordBreak: 'break-word',
+                fontFamily: 'inherit',  // Use same font as rest of UI
+                margin: 0,
+                padding: 0,
+                background: 'transparent',
+                border: 'none',
+                fontSize: 'inherit',
+                lineHeight: 'inherit',
+                color: 'inherit'
+              }}>
+                {message.content}
+              </pre>
+              <span className={styles.cursor}>|</span>
+            </div>
+          ) : (
+            // COMPLETE: Render as markdown
+            <MarkdownContent content={message.content} />
+          )}
         </div>
       )
     }
@@ -157,13 +167,7 @@ function MessageItem({
         <MarkdownContent 
           content={message.content} 
           skipMarkdown={message.type === 'user'}
-          forceMarkdown={message.type === 'llm' || message.type === 'system' || message.type === 'thinking'}
         />
-        {showSystemSpinner && (
-          <span className={styles.systemStatus}>
-            <span className={styles.systemSpinner}>⚡</span> Working...
-          </span>
-        )}
       </div>
     )
   }
