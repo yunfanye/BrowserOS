@@ -1,22 +1,63 @@
-From a9d9c73f61aa640918b92152aeeeef6f02b20fae Mon Sep 17 00:00:00 2001
+From e4b235350ad6edccaecf570f23b87a091576bfda Mon Sep 17 00:00:00 2001
 From: Nikhil Sonti <nikhilsv92@gmail.com>
 Date: Tue, 22 Jul 2025 21:36:22 -0700
-Subject: [PATCH 16/20] patch(M): pin-nxtscape-agents-together
+Subject: [PATCH] patch(M): pin browseros native panels
 
 ---
+ .../browseros_extension_constants.h           | 35 ++++++++++
  .../prefs/chrome_syncable_prefs_database.cc   | 10 +++
- .../ui/actions/browseros_actions_config.h     | 79 +++++++++++++++++++
- .../pinned_toolbar_actions_model.cc           | 21 ++++-
+ .../ui/actions/browseros_actions_config.h     | 64 +++++++++++++++++++
+ .../pinned_toolbar_actions_model.cc           | 21 +++++-
  .../pinned_toolbar_actions_model.h            |  5 ++
  .../browser/ui/toolbar/toolbar_pref_names.cc  |  6 ++
- .../browser/ui/toolbar/toolbar_pref_names.h   |  8 ++
- .../extension_side_panel_manager.cc           | 26 ++++++
- .../side_panel/side_panel_coordinator.cc      | 23 +++++-
- .../toolbar/pinned_action_toolbar_button.cc   | 32 ++++----
- .../pinned_toolbar_actions_container.cc       | 13 +++
- 10 files changed, 204 insertions(+), 19 deletions(-)
+ .../browser/ui/toolbar/toolbar_pref_names.h   |  8 +++
+ .../toolbar/pinned_action_toolbar_button.cc   | 52 +++++++++------
+ .../pinned_toolbar_actions_container.cc       | 13 ++++
+ 9 files changed, 194 insertions(+), 20 deletions(-)
+ create mode 100644 chrome/browser/extensions/browseros_extension_constants.h
  create mode 100644 chrome/browser/ui/actions/browseros_actions_config.h
 
+diff --git a/chrome/browser/extensions/browseros_extension_constants.h b/chrome/browser/extensions/browseros_extension_constants.h
+new file mode 100644
+index 0000000000000..209020e21f247
+--- /dev/null
++++ b/chrome/browser/extensions/browseros_extension_constants.h
+@@ -0,0 +1,35 @@
++// Copyright 2024 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_EXTENSIONS_BROWSEROS_EXTENSION_CONSTANTS_H_
++#define CHROME_BROWSER_EXTENSIONS_BROWSEROS_EXTENSION_CONSTANTS_H_
++
++namespace extensions {
++namespace browseros {
++
++// AI Agent Extension ID
++inline constexpr char kAISidePanelExtensionId[] =
++    "djhdjhlnljbjgejbndockeedocneiaei";
++
++// Bug Reporter Extension ID
++inline constexpr char kBugReporterExtensionId[] =
++    "jpajdgphofjhblkgpbemoelbnbinnpje";
++
++// Allowlist of BrowserOS extension IDs that are permitted to be installed
++// Only extensions with these IDs will be loaded from the config
++constexpr const char* kAllowedExtensions[] = {
++    kAISidePanelExtensionId,  // AI Side Panel extension
++    kBugReporterExtensionId,  // Bug Reporter extension
++};
++
++// Check if an extension is a BrowserOS extension
++inline bool IsBrowserOSExtension(const std::string& extension_id) {
++  return extension_id == kAISidePanelExtensionId ||
++         extension_id == kBugReporterExtensionId;
++}
++
++}  // namespace browseros
++}  // namespace extensions
++
++#endif  // CHROME_BROWSER_EXTENSIONS_BROWSEROS_EXTENSION_CONSTANTS_H_
 diff --git a/chrome/browser/sync/prefs/chrome_syncable_prefs_database.cc b/chrome/browser/sync/prefs/chrome_syncable_prefs_database.cc
 index 26f4aed48a900..946b7292a78e8 100644
 --- a/chrome/browser/sync/prefs/chrome_syncable_prefs_database.cc
@@ -47,10 +88,10 @@ index 26f4aed48a900..946b7292a78e8 100644
      {extensions::pref_names::kPinnedExtensions,
 diff --git a/chrome/browser/ui/actions/browseros_actions_config.h b/chrome/browser/ui/actions/browseros_actions_config.h
 new file mode 100644
-index 0000000000000..aaf29a1679597
+index 0000000000000..4838a697b0028
 --- /dev/null
 +++ b/chrome/browser/ui/actions/browseros_actions_config.h
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,64 @@
 +// Copyright 2025 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -67,7 +108,7 @@ index 0000000000000..aaf29a1679597
 +#include "chrome/browser/ui/ui_features.h"
 +#include "chrome/browser/ui/views/side_panel/side_panel_entry_key.h"
 +#include "chrome/common/chrome_features.h"
-+#include "chrome/common/extensions/extension_constants.h"
++#include "chrome/browser/extensions/browseros_extension_constants.h"
 +#include "ui/actions/actions.h"
 +
 +namespace browseros {
@@ -86,7 +127,7 @@ index 0000000000000..aaf29a1679597
 +// Extension IDs that behave like native BrowserOS panels
 +constexpr auto kBrowserOSExtensionIds =
 +    base::MakeFixedFlatSet<std::string_view>({
-+        extension_misc::kAISidePanelExtensionId,
++        extensions::browseros::kAISidePanelExtensionId,
 +    });
 +
 +// Check if an action ID is a BrowserOS action (native or extension)
@@ -95,24 +136,9 @@ index 0000000000000..aaf29a1679597
 +  if (kBrowserOSNativeActionIds.contains(id)) {
 +    return true;
 +  }
-+
-+  // Check extension actions
-+  for (const auto& ext_id : kBrowserOSExtensionIds) {
-+    auto ext_action_id = actions::ActionIdMap::StringToActionId(
-+        SidePanelEntryKey(SidePanelEntryId::kExtension, std::string(ext_id))
-+            .ToString());
-+    if (ext_action_id && id == *ext_action_id) {
-+      return true;
-+    }
-+  }
-+
 +  return false;
 +}
 +
-+// Check if an extension is a BrowserOS extension
-+inline bool IsBrowserOSExtension(const std::string& extension_id) {
-+  return kBrowserOSExtensionIds.contains(extension_id);
-+}
 +
 +// Get the feature flag for a native BrowserOS action
 +inline const base::Feature* GetFeatureForBrowserOSAction(actions::ActionId id) {
@@ -228,120 +254,8 @@ index c59d5f14f663d..91c60de160f9e 100644
  }  // namespace prefs
  
  namespace toolbar {
-diff --git a/chrome/browser/ui/views/side_panel/extensions/extension_side_panel_manager.cc b/chrome/browser/ui/views/side_panel/extensions/extension_side_panel_manager.cc
-index 30d4b3bc95d1c..76adcf435be97 100644
---- a/chrome/browser/ui/views/side_panel/extensions/extension_side_panel_manager.cc
-+++ b/chrome/browser/ui/views/side_panel/extensions/extension_side_panel_manager.cc
-@@ -7,19 +7,23 @@
- #include "base/memory/scoped_refptr.h"
- #include "base/strings/utf_string_conversions.h"
- #include "chrome/browser/profiles/profile.h"
-+#include "chrome/browser/ui/actions/browseros_actions_config.h"
- #include "chrome/browser/ui/actions/chrome_action_id.h"
- #include "chrome/browser/ui/actions/chrome_actions.h"
- #include "chrome/browser/ui/browser.h"
- #include "chrome/browser/ui/browser_actions.h"
- #include "chrome/browser/ui/browser_finder.h"
- #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
-+#include "chrome/browser/ui/toolbar/pinned_toolbar/pinned_toolbar_actions_model.h"
- #include "chrome/browser/ui/ui_features.h"
- #include "chrome/browser/ui/views/frame/browser_view.h"
- #include "chrome/browser/ui/views/side_panel/side_panel_action_callback.h"
- #include "chrome/browser/ui/views/side_panel/side_panel_coordinator.h"
- #include "chrome/browser/ui/views/side_panel/side_panel_registry.h"
-+#include "chrome/common/extensions/extension_constants.h"
- #include "content/public/browser/browser_context.h"
- #include "content/public/browser/web_contents.h"
-+#include "extensions/common/constants.h"
- #include "extensions/common/extension.h"
- #include "extensions/common/extension_features.h"
- #include "extensions/common/permissions/api_permission.h"
-@@ -77,6 +81,17 @@ void ExtensionSidePanelManager::InitializeActions() {
-   ExtensionRegistry* extension_registry = ExtensionRegistry::Get(profile_);
-   for (const auto& extension : extension_registry->enabled_extensions()) {
-     MaybeCreateActionItemForExtension(extension.get());
-+    
-+    // Automatically pin BrowserOS extensions during initialization
-+    // Only do this if we have a browser_ (not for tab-scoped managers)
-+    if (browser_ && browseros::IsBrowserOSExtension(extension->id())) {
-+      actions::ActionId extension_action_id = GetOrCreateActionIdForExtension(extension.get());
-+      PinnedToolbarActionsModel* pinned_model = 
-+          PinnedToolbarActionsModel::Get(browser_->profile());
-+      if (pinned_model && !pinned_model->Contains(extension_action_id)) {
-+        pinned_model->UpdatePinnedState(extension_action_id, true);
-+      }
-+    }
-   }
- }
- 
-@@ -85,6 +100,17 @@ void ExtensionSidePanelManager::OnExtensionLoaded(
-     const Extension* extension) {
-   MaybeCreateActionItemForExtension(extension);
-   MaybeCreateExtensionSidePanelCoordinator(extension);
-+  
-+  // Automatically pin BrowserOS extensions when they're loaded
-+  // Only do this if we have a browser_ (not for tab-scoped managers)
-+  if (browser_ && browseros::IsBrowserOSExtension(extension->id())) {
-+    actions::ActionId extension_action_id = GetOrCreateActionIdForExtension(extension);
-+    PinnedToolbarActionsModel* pinned_model = 
-+        PinnedToolbarActionsModel::Get(browser_->profile());
-+    if (pinned_model && !pinned_model->Contains(extension_action_id)) {
-+      pinned_model->UpdatePinnedState(extension_action_id, true);
-+    }
-+  }
- }
- 
- void ExtensionSidePanelManager::MaybeCreateActionItemForExtension(
-diff --git a/chrome/browser/ui/views/side_panel/side_panel_coordinator.cc b/chrome/browser/ui/views/side_panel/side_panel_coordinator.cc
-index 810fba8149204..62f5ab56b6b6f 100644
---- a/chrome/browser/ui/views/side_panel/side_panel_coordinator.cc
-+++ b/chrome/browser/ui/views/side_panel/side_panel_coordinator.cc
-@@ -44,6 +44,7 @@
- #include "chrome/browser/ui/views/side_panel/side_panel_web_ui_view.h"
- #include "chrome/browser/ui/views/toolbar/pinned_toolbar_actions_container.h"
- #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
-+#include "chrome/common/extensions/extension_constants.h"
- #include "chrome/common/pref_names.h"
- #include "chrome/grit/generated_resources.h"
- #include "components/feature_engagement/public/event_constants.h"
-@@ -811,16 +812,32 @@ void SidePanelCoordinator::NotifyPinnedContainerOfActiveStateChange(
-       browser_view_->toolbar()->pinned_toolbar_actions_container();
-   CHECK(toolbar_container);
- 
-+  // Check if this is our special AI chat extension
-+  bool is_ai_chat_extension = false;
-+  if (key.id() == SidePanelEntryId::kExtension && key.extension_id().has_value()) {
-+    is_ai_chat_extension = (key.extension_id().value() == extension_misc::kAISidePanelExtensionId);
-+  }
-+
-   // Active extension side-panels have different UI in the toolbar than active
-   // built-in side-panels.
--  if (key.id() == SidePanelEntryId::kExtension) {
-+  // Only send to extensions container if it's NOT our AI chat extension
-+  if (key.id() == SidePanelEntryId::kExtension && !is_ai_chat_extension) {
-     browser_view_->toolbar()->extensions_container()->UpdateSidePanelState(
-         is_active);
-   } else {
-+    // For native panels AND our AI chat extension
-     std::optional<actions::ActionId> action_id =
-         SidePanelEntryIdToActionId(key.id());
--    CHECK(action_id.has_value());
--    toolbar_container->UpdateActionState(*action_id, is_active);
-+    
-+    // For AI chat extension, we need to get its actual action ID
-+    if (!action_id.has_value() && is_ai_chat_extension) {
-+      // Get the action ID for the extension from the key
-+      action_id = actions::ActionIdMap::StringToActionId(key.ToString());
-+    }
-+    
-+    if (action_id.has_value()) {
-+      toolbar_container->UpdateActionState(*action_id, is_active);
-+    }
-   }
- }
- 
 diff --git a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
-index ad850a06feeeb..68804e8740063 100644
+index ad850a06feeeb..06259d2817b4e 100644
 --- a/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
 +++ b/chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
 @@ -8,6 +8,11 @@
@@ -364,7 +278,7 @@ index ad850a06feeeb..68804e8740063 100644
  #include "ui/actions/action_id.h"
  #include "ui/actions/action_utils.h"
  #include "ui/actions/actions.h"
-@@ -72,14 +78,9 @@ PinnedActionToolbarButton::PinnedActionToolbarButton(
+@@ -72,18 +78,25 @@ PinnedActionToolbarButton::PinnedActionToolbarButton(
    GetViewAccessibility().SetDescription(
        std::u16string(), ax::mojom::DescriptionFrom::kAttributeExplicitlyEmpty);
  
@@ -377,11 +291,31 @@ index ad850a06feeeb..68804e8740063 100644
 -        (action_item->GetActionId() == actions::ActionIdMap::StringToActionId(
 -            SidePanelEntry::Key(SidePanelEntry::Id::kExtension, 
 -                               extension_misc::kAISidePanelExtensionId).ToString()))) {
+-      // Use LabelButton::SetText directly to set permanent text
+-      views::LabelButton::SetText(action_item->GetText());
+-      // Ensure the text is visible
+-      SetTextSubpixelRenderingEnabled(false);
 +    if (browseros::IsBrowserOSAction(action_id)) {
-       // Use LabelButton::SetText directly to set permanent text
-       views::LabelButton::SetText(action_item->GetText());
-       // Ensure the text is visible
-@@ -238,7 +239,13 @@ void PinnedActionToolbarButton::UpdateIcon() {
++      // Check if labels should be shown
++      bool show_labels = true;
++      if (browser_ && browser_->profile()) {
++        show_labels = browser_->profile()->GetPrefs()->GetBoolean(
++            prefs::kBrowserOSShowToolbarLabels);
++      }
++      
++      if (show_labels) {
++        // Use LabelButton::SetText directly to set permanent text
++        views::LabelButton::SetText(action_item->GetText());
++        // Ensure the text is visible
++        SetTextSubpixelRenderingEnabled(false);
++      } else {
++        // Clear the text if labels are disabled
++        views::LabelButton::SetText(std::u16string());
++      }
+     }
+   }
+ 
+@@ -238,7 +251,13 @@ void PinnedActionToolbarButton::UpdateIcon() {
                                      ? icons->touch_icon
                                      : icons->icon;
  
@@ -396,7 +330,7 @@ index ad850a06feeeb..68804e8740063 100644
      UpdateIconsWithColors(
          icon, GetColorProvider()->GetColor(kColorToolbarActionItemEngaged),
          GetColorProvider()->GetColor(kColorToolbarActionItemEngaged),
-@@ -340,13 +347,8 @@ void PinnedActionToolbarButtonActionViewInterface::ActionItemChangedImpl(
+@@ -340,13 +359,8 @@ void PinnedActionToolbarButtonActionViewInterface::ActionItemChangedImpl(
      }
    }
  
