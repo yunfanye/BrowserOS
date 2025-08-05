@@ -55,9 +55,9 @@ export type NxtScapeResult = z.infer<typeof NxtScapeResultSchema>;
 export class NxtScape {
   private readonly config: NxtScapeConfig;
   private browserContext: BrowserContext;
-  private executionContext: ExecutionContext;
+  private executionContext!: ExecutionContext; // Will be initialized in initialize()
   private abortController: AbortController; // Track current execution for cancellation
-  private messageManager: MessageManager; // Clean conversation history management using MessageManager
+  private messageManager!: MessageManager; // Will be initialized in initialize()
   private browserAgent: BrowserAgent | PocAgent | null = null; // The browser agent for task execution
 
   private currentQuery: string | null = null; // Track current query for better cancellation messages

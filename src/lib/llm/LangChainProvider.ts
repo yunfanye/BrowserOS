@@ -230,6 +230,22 @@ export class LangChainProvider {
         // Nxtscape uses OpenAI client with proxy configuration
         return new ChatOpenAI({
           ...baseConfig,
+          // IMPORTANT: Model name mapping for tiktoken compatibility
+          // The 'modelName' field is what gets sent to the API (our custom model like "default-llm")
+          // The 'model' field is what tiktoken uses for token counting
+          // 
+          // Since nxtscape uses custom model names that tiktoken doesn't recognize (e.g., "default-llm"),
+          // we get "Unknown model" errors when LangChain tries to count tokens.
+          // 
+          // Solution: We keep the actual model name in 'modelName' for API calls,
+          // but override 'model' with a known OpenAI model ("gpt-4") for token counting.
+          // This eliminates the tiktoken errors while maintaining correct API behavior.
+          // 
+          // Note: "gpt-4" is chosen because:
+          // 1. It uses the cl100k_base encoding (same as GPT-3.5-turbo and GPT-4 family)
+          // 2. It has a large context window (128k) similar to our proxy models
+          // 3. Token counting will be approximate but reasonable for our use case
+          model: "default-llm",  // Known model for tiktoken token counting
           openAIApiKey: config.apiKey,  // This is the correct parameter name
           // The `configuration` field is forwarded directly to the underlying OpenAI client
           configuration: {

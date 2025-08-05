@@ -333,30 +333,36 @@ export class BrowserAgent {
       const todoStore = this.executionContext.todoStore;
       this.eventEmitter.info(formatTodoList(todoStore.getJson()));
 
-      // 3. EXECUTE: Give full control to model
-      const instruction = `Execute the TODOs to complete the task: "${task}".
+      // 3. EXECUTE: Inner loop with one TODO per turn
+      let inner_loop_index = 0;
+      
+      while (inner_loop_index < BrowserAgent.MAX_STEPS_INNER_LOOP && !todoStore.isAllDoneOrSkipped()) {
+        this.checkIfAborted();
+        
+        // One focused instruction per turn
+        const instruction = `Execute the next TODO for the task: "${task}".
 
-Your workflow:
-1. Call todo_manager_tool with action 'get_next' to fetch each TODO
-2. Execute the TODO using appropriate tools
-3. Verify completion with refresh_browser_state when needed
-4. Mark complete with todo_manager_tool action 'complete'
-5. Continue until get_next returns null
-6. Call done_tool when the overall task is complete
+Steps:
+1. Call todo_manager_tool with action 'get_next' to fetch the next TODO
+2. If get_next returns null, call done_tool to complete the task
+3. Otherwise, execute the TODO using appropriate tools
+4. Call refresh_browser_state_tool to verify the TODO is complete
+5. If complete, mark it with todo_manager_tool action 'complete' (pass array with single ID)
+6. If not complete or blocked, explain what's preventing completion
 
-You have full autonomy to:
-- Skip irrelevant TODOs
-- Go back if previous TODOs weren't completed
-- Handle errors and retry as needed
-
-Remember: Each TODO might require multiple tool calls to complete.`;
-
-      const isTaskCompleted = await this._executeSingleTurn(instruction);
-      if (isTaskCompleted) {
-        return; // Task completed successfully
+Important:
+- Focus on ONE TODO at a time
+- Verify completion before marking done
+- You can skip irrelevant TODOs with action 'skip'
+- You can go back if needed with action 'go_back'`;
+        
+        const isTaskCompleted = await this._executeSingleTurn(instruction);
+        inner_loop_index++;
+        
+        if (isTaskCompleted) {
+          return; // done_tool was called
+        }
       }
-
-      // 4. VALIDATE: Check if we should continue or re-plan
 
       // 4. VALIDATE: Check if we should continue or re-plan
       const validationResult = await this._validateTaskCompletion(task);
@@ -365,19 +371,13 @@ Remember: Each TODO might require multiple tool calls to complete.`;
       }
 
       // Add validation feedback for next planning cycle
-
-      // Add validation feedback for next planning cycle
       if (validationResult.suggestions.length > 0) {
         const validationMessage = `Validation result: ${validationResult.reasoning}\nSuggestions: ${validationResult.suggestions.join(', ')}`;
         this.messageManager.addAI(validationMessage);
       }
 
       outer_loop_index++;
-
-      outer_loop_index++;
     }
-
-    throw new Error(`Task did not complete within ${BrowserAgent.MAX_STEPS_OUTER_LOOP} planning cycles.`);
 
     throw new Error(`Task did not complete within ${BrowserAgent.MAX_STEPS_OUTER_LOOP} planning cycles.`);
   }
@@ -395,6 +395,8 @@ Remember: Each TODO might require multiple tool calls to complete.`;
     
     // This method encapsulates the streaming logic
     const llmResponse = await this._invokeLLMWithStreaming();
+    console.log("LLM Response:", JSON.stringify(llmResponse, null, 4));
+    
 
     let wasDoneToolCalled = false;
     if (llmResponse.tool_calls && llmResponse.tool_calls.length > 0) {
@@ -493,14 +495,13 @@ Remember: Each TODO might require multiple tool calls to complete.`;
       this.eventEmitter.emitToolResult(toolName, result);
 
       // Add the result back to the message history for context
-      // add toolMessage before systemReminders as openAI expects each 
-      // tool call to be followed by toolMessage
-      this.messageManager.addTool(result, toolCallId);
-
-      // Special handling for refresh_browser_state tool, add the browser state to the message history
+      // Special handling for refresh_browser_state_tool vs other tools:
+      // - refresh_browser_state_tool: Add as browser state message
+      // - All other tools: Add as regular tool message for proper conversation flow
       if (toolName === 'refresh_browser_state_tool' && parsedResult.ok) {
-        // Add browser state as a system reminder that LLM should not print
-        this.messageManager.addSystemReminder(parsedResult.output);
+        this.messageManager.addBrowserState(parsedResult.output);
+      } else {
+        this.messageManager.addTool(result, toolCallId);
       }
 
       // Special handling for todo_manager_tool, add system reminder for mutations
