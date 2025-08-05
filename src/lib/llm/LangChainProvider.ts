@@ -44,6 +44,11 @@ export const LLMConfigSchema = z.object({
 
 export type LLMConfig = z.infer<typeof LLMConfigSchema>
 
+// Model capabilities interface
+export interface ModelCapabilities {
+  maxTokens: number;  // Maximum context window size
+}
+
 export class LangChainProvider {
   private static instance: LangChainProvider
   private settings: LLMSettings | null = null
@@ -75,6 +80,54 @@ export class LangChainProvider {
     llmCache.set(cacheKey, llm)
     
     return llm
+  }
+  
+  // Get model capabilities based on provider and model
+  async getModelCapabilities(config?: LLMConfig): Promise<ModelCapabilities> {
+    // If no config provided, create one from settings
+    if (!config) {
+      this.settings = await LLMSettingsReader.read()
+      config = this._createConfigFromSettings(this.settings)
+    }
+    
+    // Determine max tokens based on provider and model
+    switch (config.provider) {
+      case 'nxtscape':
+        // Nxtscape uses Gemini 2.5 Flash
+        return { maxTokens: 1_000_000 }
+        
+      case 'openai':
+        // Check model name for context window size
+        if (config.model.includes('gpt-4') || config.model.includes('o1') || config.model.includes('o3') || config.model.includes('o4')) {
+          return { maxTokens: 128_000 }
+        }
+        return { maxTokens: 32_768 }
+        
+      case 'anthropic':
+        // Claude 3 models have 200k context
+        if (config.model.includes('claude-3.7') || config.model.includes('claude-4')) {
+          return { maxTokens: 200_000 }
+        }
+        return { maxTokens: 100_000 }
+        
+      case 'gemini':
+        // Gemini 2.5 Flash and Pro support 2M tokens, but setting to 1.5M for conseravtive reasons.
+        if (config.model.includes('2.5') || config.model.includes('2.0')) {
+          return { maxTokens: 1_500_000 }
+        }
+        return { maxTokens: 1_000_000 }
+        
+      case 'ollama':
+        // Ollama models vary widely, use conservative default
+        // Could be enhanced to query model info from Ollama API
+        if (config.model.includes('mixtral') || config.model.includes('llama') || config.model.includes('qwen') || config.model.includes('deepseek')) {
+          return { maxTokens: 32_768 }
+        }
+        return { maxTokens: 8_192 }
+        
+      default:
+        return { maxTokens: 8_192 }
+    }
   }
   
   // Public creator methods

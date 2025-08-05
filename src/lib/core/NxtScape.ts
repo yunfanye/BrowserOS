@@ -8,6 +8,7 @@ import { profileStart, profileEnd, profileAsync } from "@/lib/utils/profiler";
 import { BrowserAgent } from "@/lib/agent/BrowserAgent";
 import { PocAgent } from "@/lib/agent/PocAgent";
 import { isPocMode } from "@/config";
+import { langChainProvider } from "@/lib/llm/LangChainProvider";
 
 /**
  * Configuration schema for NxtScape agent
@@ -69,9 +70,6 @@ export class NxtScape {
     // Validate config with Zod schema
     this.config = NxtScapeConfigSchema.parse(config);
 
-    // Initialize message manager with reasonable settings
-    this.messageManager = new MessageManager(128000); // Default max tokens
-
     // Create new browser context with vision configuration
     this.browserContext = new BrowserContext({
       useVision: true,
@@ -79,15 +77,6 @@ export class NxtScape {
 
     // create new abort controller for this execution
     this.abortController = new AbortController();
-
-    // Create new execution context without EventBus
-    // EventBus and EventProcessor will be set during run()
-    this.executionContext = new ExecutionContext({
-      browserContext: this.browserContext,
-      messageManager: this.messageManager,
-      debugMode: this.config.debug || false,
-      abortController: this.abortController,
-    });
 
     // Initialize logging
     Logging.initialize({ debugMode: this.config.debug || false });
@@ -107,6 +96,23 @@ export class NxtScape {
     await profileAsync("NxtScape.initialize", async () => {
       try {
         // BrowserContextV2 doesn't need initialization
+        
+        // Get model capabilities to set appropriate token limit
+        const modelCapabilities = await langChainProvider.getModelCapabilities();
+        const maxTokens = modelCapabilities.maxTokens;
+        
+        Logging.log("NxtScape", `Initializing MessageManager with ${maxTokens} token limit`);
+        
+        // Initialize message manager with correct token limit
+        this.messageManager = new MessageManager(maxTokens);
+        
+        // Create execution context with properly configured message manager
+        this.executionContext = new ExecutionContext({
+          browserContext: this.browserContext,
+          messageManager: this.messageManager,
+          debugMode: this.config.debug || false,
+          abortController: this.abortController,
+        });
         
         // Initialize the browser agent with execution context
         // Use PocAgent if in POC mode, otherwise use BrowserAgent
