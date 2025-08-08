@@ -138,7 +138,7 @@ export class UIEventHandler {
     
     this.sendUIMessage({
       messageType: UIMessageType.ToolStart,
-      toolName: displayName,
+      toolName: toolName,
       toolArgs: {
         description,
         icon,
@@ -162,7 +162,7 @@ export class UIEventHandler {
     
     this.sendUIMessage({
       messageType: UIMessageType.ToolEnd,
-      toolName: displayName,
+      toolName: toolName,
       toolResult: result,
       content: result  // For backward compatibility
     });
@@ -173,7 +173,7 @@ export class UIEventHandler {
     
     this.sendUIMessage({
       messageType: UIMessageType.ToolResult,
-      toolName: displayName,
+      toolName: toolName,
       content: content,
       success: success
     });

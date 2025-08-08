@@ -188,7 +188,6 @@ export class EventProcessor {
 
       // Search & extract
       search: { name: 'Searched web', icon: '🔎', description: (args) => `Searching for: ${args?.query || 'unknown query'}` },
-      extract: { name: 'Extracted content', icon: '📄', description: () => 'Extracting content' },
 
       // Workflow
       todo_manager: { name: 'Updated tasks', icon: '📝', description: () => 'Updating tasks' },

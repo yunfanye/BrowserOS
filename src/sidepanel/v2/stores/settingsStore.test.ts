@@ -33,7 +33,7 @@ beforeEach(() => {
   // Reset store to initial state
   useSettingsStore.setState({
     fontSize: 14,
-    isDarkMode: false
+    theme: 'light'
   })
 })
 
@@ -42,14 +42,14 @@ describe('SettingsStore', () => {
     const store = useSettingsStore.getState()
     
     expect(store.fontSize).toBe(14)
-    expect(store.isDarkMode).toBe(false)
+    expect(store.theme).toBe('light')
   })
 
   it('should have setFontSize and setDarkMode methods', () => {
     const store = useSettingsStore.getState()
     
     expect(typeof store.setFontSize).toBe('function')
-    expect(typeof store.setDarkMode).toBe('function')
+    expect(typeof store.setTheme).toBe('function')
     expect(typeof store.resetSettings).toBe('function')
   })
 
@@ -61,10 +61,10 @@ describe('SettingsStore', () => {
     expect(mockDocument.documentElement.style.setProperty).toHaveBeenCalledWith('--app-font-size', '18px')
   })
 
-  it('should call document methods when setDarkMode is called', () => {
+  it('should call document methods when setTheme is called', () => {
     const store = useSettingsStore.getState()
     
-    store.setDarkMode(true)
+    store.setTheme('dark')
     
     expect(mockDocument.documentElement.classList.add).toHaveBeenCalledWith('dark')
   })
@@ -76,5 +76,6 @@ describe('SettingsStore', () => {
     
     expect(mockDocument.documentElement.style.removeProperty).toHaveBeenCalledWith('--app-font-size')
     expect(mockDocument.documentElement.classList.remove).toHaveBeenCalledWith('dark')
+    expect(mockDocument.documentElement.classList.remove).toHaveBeenCalledWith('gray')
   })
 }) 

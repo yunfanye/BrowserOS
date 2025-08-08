@@ -96,12 +96,12 @@ const TabDataDisplay = ({ content }: TabDataDisplayProps) => {
       </div>
       
       {Object.entries(tabsByWindow).map(([windowId, tabs]) => (
-        <div key={windowId} className="bg-muted/30 rounded-lg p-3 border border-border/50">
+        <div key={windowId} className="tab-card bg-muted/30 rounded-lg p-3">
           <div className="space-y-2">
             {tabs.map((tab) => (
               <div 
                 key={tab.id} 
-                className="flex items-start gap-3 p-2 bg-background/50 rounded border border-border/30 hover:bg-background/70 transition-colors"
+                className="flex items-start gap-3 p-2 bg-background/50 rounded hover:bg-background/70 transition-colors"
               >
                 <div className="flex-shrink-0 w-2 h-2 rounded-full bg-brand/60 mt-2"></div>
                 <div className="flex-1 min-w-0">
@@ -143,12 +143,12 @@ const SelectedTabDataDisplay = ({ content }: SelectedTabDataDisplayProps) => {
         Selected {tabData.length} tab{tabData.length !== 1 ? 's' : ''}
       </div>
       
-      <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+      <div className="tab-card bg-muted/30 rounded-lg p-3">
         <div className="space-y-2">
           {tabData.map((tab) => (
             <div 
               key={tab.id} 
-              className="flex items-start gap-3 p-2 bg-background/50 rounded border border-border/30 hover:bg-background/70 transition-colors"
+              className="flex items-start gap-3 p-2 bg-background/50 rounded hover:bg-background/70 transition-colors"
             >
               <div className="flex-shrink-0 w-2 h-2 rounded-full bg-brand/60 mt-2"></div>
               <div className="flex-1 min-w-0">
@@ -233,7 +233,7 @@ const ExtractedItemsDisplay = ({ content }: ExtractedItemsDisplayProps) => {
 
   return (
     <div className="space-y-1">
-      <div className="bg-muted/30 rounded-lg p-2 border border-border/50">
+      <div className="extract-card bg-muted/30 rounded-lg p-2">
         <div className="space-y-1">
           {items.map((it, idx) => (
             <details key={`${it.primary}-${idx}`} className="group">
@@ -301,18 +301,18 @@ export const MessageItem = memo<MessageItemProps>(function MessageItem({ message
     // User message styling
     if (isUser) {
       return {
-        bubble: 'ml-4 bg-gradient-to-br from-brand/90 to-brand/80 text-white rounded-br-md backdrop-blur-sm border border-transparent',
-        glow: 'bg-gradient-to-bl from-brand/20 to-transparent',
-        shadow: 'shadow-lg hover:shadow-xl'  // User messages get hover shadow
+        bubble: 'ml-4 bg-brand text-white rounded-br-md',
+        glow: '',
+        shadow: ''
       }
     }
 
     // Special styling for TODO lists (task manager)
     if (contentChecks.isTodoTable) {
       return {
-        bubble: 'mr-4 bg-gradient-to-br from-card/80 to-card/60 text-foreground rounded-bl-md border-border/50',
-        glow: '',  // Remove hover gradient for task manager
-        shadow: 'shadow-lg'  // Task manager gets static shadow, no hover effect
+        bubble: 'mr-4 bg-card text-foreground rounded-bl-md',
+        glow: '',
+        shadow: ''
       }
     }
 
@@ -540,11 +540,40 @@ export const MessageItem = memo<MessageItemProps>(function MessageItem({ message
         )
       
       case 'tool-result': {
-        const rawName = message.metadata?.toolName || 'tool result'
-        // Keep the label minimal; do not render verbose tool content
+        // Safeguard: never override extractor rendering here
+        if (message.metadata?.toolName === 'extract_tool') {
+          return (
+            <ExtractedItemsDisplay content={message.content} />
+          )
+        }
+        const rawName = message.metadata?.toolName || 'tool'
+        const content = typeof message.content === 'string' ? message.content : ''
+        // Remove inline prefix if present to avoid duplication when showing label
+        const baseName = rawName.replace(/_tool$/, '')
+        const prefixRegex = new RegExp(`^(${rawName}|${baseName})\\s*-\\s*`, 'i')
+        const cleanContent = content.replace(prefixRegex, '')
+        
+        if (shouldIndent) {
+          // Orange-line grouped messages: show compact label above content
+          return (
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground/80 leading-tight">
+                {rawName}
+              </div>
+              <div className="text-sm text-muted-foreground font-medium">
+                {cleanContent || ''}
+              </div>
+            </div>
+          )
+        }
+        
+        // Non-indented messages: keep single-line, prefixed style
+        const singleLine = cleanContent
+          ? `${rawName} - ${cleanContent}`
+          : rawName
         return (
           <div className="text-sm text-muted-foreground font-medium">
-            {rawName}
+            {singleLine}
           </div>
         )
       }
@@ -609,7 +638,6 @@ export const MessageItem = memo<MessageItemProps>(function MessageItem({ message
         <div className={cn(
           'relative max-w-[85%] rounded-2xl px-3 py-1 transition-all duration-300',
           messageStyling.shadow,
-          isUser ? 'group-hover:scale-[1.02]' : '',
           messageStyling.bubble,
           // Slightly darker text for indented bubble messages to improve contrast
           shouldIndent && 'opacity-90 text-foreground'

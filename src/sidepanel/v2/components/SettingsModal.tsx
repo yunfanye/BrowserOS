@@ -20,13 +20,13 @@ const SettingsModalPropsSchema = z.object({
 type SettingsModalProps = z.infer<typeof SettingsModalPropsSchema>
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { fontSize, isDarkMode, setFontSize, setDarkMode } = useSettingsStore()
+  const { fontSize, theme, setFontSize, setTheme } = useSettingsStore()
   const [glowEnabled, setGlowEnabled] = useState<boolean>(true)
   const { sendMessage } = useSidePanelPortMessaging()
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setDarkMode(!isDarkMode)
+  // Select theme
+  const selectTheme = (next: 'light' | 'dark' | 'gray') => {
+    setTheme(next)
   }
 
   // Close modal when clicking outside
@@ -123,36 +123,49 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Settings content */}
         <div className="space-y-6">
-          {/* Theme toggle */}
+          {/* Theme selection */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-foreground">Appearance</h3>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border/50">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-brand to-brand/80 flex items-center justify-center">
-                  {isDarkMode ? <MoonIcon /> : <SunIcon />}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">Dark Mode</p>
-                  <p className="text-xs text-muted-foreground">Switch between light and dark themes</p>
+            <h3 className="text-sm font-medium text-foreground">Theme</h3>
+            <div className="p-4 rounded-xl bg-card border border-border/50">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">Change app theme</p>
+                <div className="inline-flex rounded-lg border border-border bg-background overflow-hidden shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => selectTheme('light')}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                      theme === 'light' ? 'bg-brand text-white' : 'text-foreground hover:bg-muted'
+                    }`}
+                    aria-pressed={theme === 'light'}
+                  >
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectTheme('dark')}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-border ${
+                      theme === 'dark' ? 'bg-brand text-white' : 'text-foreground hover:bg-muted'
+                    }`}
+                    aria-pressed={theme === 'dark'}
+                  >
+                    Dark
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectTheme('gray')}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-border ${
+                      theme === 'gray' ? 'bg-brand text-white' : 'text-foreground hover:bg-muted'
+                    }`}
+                    aria-pressed={theme === 'gray'}
+                  >
+                    Gray
+                  </button>
                 </div>
               </div>
-              <Button
-                onClick={toggleDarkMode}
-                variant="outline"
-                size="sm"
-                className={`h-8 px-3 rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'bg-brand text-white border-brand hover:bg-brand/90' 
-                    : 'bg-background border-border hover:bg-muted'
-                }`}
-                aria-label={`${isDarkMode ? 'Disable' : 'Enable'} dark mode`}
-              >
-                {isDarkMode ? 'On' : 'Off'}
-              </Button>
             </div>
 
             {/* Page Glow */}
-            <div className="flex items-center justify-between px-4 py-2 rounded-xl border border-border/50 bg-muted/30">
+            <div className="flex items-center justify-between px-4 py-2 rounded-xl border border-border/50 bg-card">
               <p className="text-xs text-muted-foreground">Page glow during actions</p>
               <Button
                 onClick={toggleGlow}
@@ -171,7 +184,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {/* Font Size */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-foreground">Typography</h3>
-            <div className="p-4 rounded-xl bg-muted/50 border border-border/50 space-y-4">
+            <div className="p-4 rounded-xl bg-card border border-border/50 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">Font Size</p>
@@ -200,7 +213,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {/* More settings can be added here */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-foreground">About</h3>
-            <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+            <div className="p-4 rounded-xl bg-card border border-border/50">
               <p className="text-sm text-muted-foreground">
                 BrowserOS Agentic Assistant v1.0.0
               </p>

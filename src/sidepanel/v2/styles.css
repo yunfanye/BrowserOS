@@ -6,8 +6,9 @@
   :root {
     --background: 0 0% 96%;
     --background-alt: 0 0% 100%;
+    --header: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
+    --card: 0 0% 98%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
@@ -31,6 +32,7 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --background-alt: 224 71% 4%;
+    --header: 224 71% 4%;
     --foreground: 210 40% 98%;
     --card: 224 71% 4%;
     --card-foreground: 210 40% 98%;
@@ -48,6 +50,31 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --brand: 19 96% 55%;
+  }
+
+  .gray {
+    --background: 220 10% 3%;
+    --background-alt: 220 8% 6%;
+    --header: 220 7% 12%;
+    --foreground: 0 0% 96%;
+    --card: 220 8% 8%;
+    --card-foreground: 0 0% 96%;
+    --popover: 220 8% 8%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 8% 12%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 220 8% 12%;
+    --muted-foreground: 220 5% 60%;
+    --accent: 220 8% 12%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 7% 18%;
+    --input: 220 7% 18%;
     --ring: 224.3 76.3% 48%;
     --brand: 19 96% 55%;
   }
@@ -695,4 +722,14 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, label, input, textarea, button
 .dark .glass {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Extract tool card - light theme background override */
+:root:not(.dark):not(.gray) .extract-card {
+  background-color: #ffffff;
+}
+
+/* Tab selector outputs - light theme background override */
+:root:not(.dark):not(.gray) .tab-card {
+  background-color: #ffffff;
 }

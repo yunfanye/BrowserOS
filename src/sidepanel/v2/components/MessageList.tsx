@@ -357,10 +357,7 @@ export function MessageList({ messages, onScrollStateChange, scrollToBottom: ext
       
       {/* Messages container */}
       <div 
-        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-brand/30 scrollbar-track-transparent"
-        style={{
-          background: 'radial-gradient(ellipse at top right, hsl(var(--background)) 0%, hsl(var(--background)) 40%, transparent 100%)'
-        }}
+        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-brand/30 scrollbar-track-transparent bg-[hsl(var(--background))]"
         ref={containerRef}
         role="log"
         aria-label="Chat messages"
@@ -377,7 +374,7 @@ export function MessageList({ messages, onScrollStateChange, scrollToBottom: ext
             const pushGroup = () => {
               if (groupChildren.length > 0) {
                 blocks.push(
-                  <div key={`group-${blocks.length}`} className="relative pl-4 before:content-[''] before:absolute before:left-[8px] before:top-0 before:bottom-0 before:w-px before:bg-gradient-to-b before:from-brand/40 before:via-brand/30 before:to-brand/20">
+                  <div key={`group-${blocks.length}`} className="relative before:content-[''] before:absolute before:left-[8px] before:top-0 before:bottom-0 before:w-px before:bg-gradient-to-b before:from-brand/40 before:via-brand/30 before:to-brand/20">
                     {groupChildren}
                   </div>
                 )

@@ -59,7 +59,7 @@ export const Header = memo(function Header({ onReset, showReset, isProcessing }:
   return (
     <>
       <header 
-        className="relative flex items-center justify-between h-12 px-3 bg-gradient-to-r from-background via-background to-background/95 border-b border-border/50"
+        className="relative flex items-center justify-between h-12 px-3 bg-[hsl(var(--header))] border-b border-border/50"
         role="banner"
       >
 

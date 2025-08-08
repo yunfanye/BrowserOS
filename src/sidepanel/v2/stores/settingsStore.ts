@@ -5,7 +5,7 @@ import { z } from 'zod'
 // Settings schema
 const SettingsSchema = z.object({
   fontSize: z.number().min(13).max(21).default(14),  // Font size in pixels
-  isDarkMode: z.boolean().default(false)  // Dark mode setting
+  theme: z.enum(['light', 'dark', 'gray']).default('light')  // App theme
 })
 
 type Settings = z.infer<typeof SettingsSchema>
@@ -13,14 +13,14 @@ type Settings = z.infer<typeof SettingsSchema>
 // Store actions
 interface SettingsActions {
   setFontSize: (size: number) => void
-  setDarkMode: (isDark: boolean) => void
+  setTheme: (theme: 'light' | 'dark' | 'gray') => void
   resetSettings: () => void
 }
 
 // Initial state
 const initialState: Settings = {
   fontSize: 14,
-  isDarkMode: false
+  theme: 'light'
 }
 
 // Create the store with persistence
@@ -37,14 +37,14 @@ export const useSettingsStore = create<Settings & SettingsActions>()(
         document.documentElement.style.setProperty('--app-font-size', `${size}px`)
       },
       
-      setDarkMode: (isDark) => {
-        set({ isDarkMode: isDark })
-        // Apply dark mode to document
-        if (isDark) {
-          document.documentElement.classList.add('dark')
-        } else {
-          document.documentElement.classList.remove('dark')
-        }
+      setTheme: (theme) => {
+        set({ theme })
+        // Apply theme classes to document
+        const root = document.documentElement
+        root.classList.remove('dark')
+        root.classList.remove('gray')
+        if (theme === 'dark') root.classList.add('dark')
+        if (theme === 'gray') root.classList.add('gray')
       },
       
       resetSettings: () => {
@@ -52,11 +52,24 @@ export const useSettingsStore = create<Settings & SettingsActions>()(
         // Reset document styles
         document.documentElement.style.removeProperty('--app-font-size')
         document.documentElement.classList.remove('dark')
+        document.documentElement.classList.remove('gray')
       }
     }),
     {
       name: 'nxtscape-settings',  // localStorage key
-      version: 1
+      version: 2,
+      migrate: (persisted: any, version: number) => {
+        // Migrate from v1 isDarkMode -> theme
+        if (version === 1 && persisted) {
+          const isDarkMode: boolean = persisted.isDarkMode === true
+          const next = {
+            fontSize: typeof persisted.fontSize === 'number' ? persisted.fontSize : 14,
+            theme: isDarkMode ? 'dark' : 'light'
+          }
+          return next
+        }
+        return persisted as Settings
+      }
     }
   )
 ) 

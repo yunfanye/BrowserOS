@@ -20,7 +20,7 @@ export function App() {
   const { connected } = useSidePanelPortMessaging()
   
   // Initialize settings
-  const { fontSize, isDarkMode } = useSettingsStore()
+  const { fontSize, theme } = useSettingsStore()
   
   // Initialize global announcer for screen readers
   const announcer = useAnnouncer()
@@ -33,13 +33,13 @@ export function App() {
     // Apply font size
     document.documentElement.style.setProperty('--app-font-size', `${fontSize}px`)
     
-    // Apply dark mode
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }, [fontSize, isDarkMode])
+    // Apply theme classes
+    const root = document.documentElement
+    root.classList.remove('dark')
+    root.classList.remove('gray')
+    if (theme === 'dark') root.classList.add('dark')
+    if (theme === 'gray') root.classList.add('gray')
+  }, [fontSize, theme])
   
   // Announce connection status changes
   useEffect(() => {
