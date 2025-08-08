@@ -20,7 +20,7 @@ const SettingsModalPropsSchema = z.object({
 type SettingsModalProps = z.infer<typeof SettingsModalPropsSchema>
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { fontSize, theme, setFontSize, setTheme } = useSettingsStore()
+  const { fontSize, theme, autoScroll, setFontSize, setTheme, setAutoScroll } = useSettingsStore()
   const [glowEnabled, setGlowEnabled] = useState<boolean>(true)
   const { sendMessage } = useSidePanelPortMessaging()
 
@@ -177,6 +177,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 {glowEnabled ? 'On' : 'Off'}
               </Button>
             </div>
+
+          {/* Auto-Scroll */}
+          <div className="flex items-center justify-between px-4 py-2 rounded-xl border border-border/50 bg-card">
+            <p className="text-xs text-muted-foreground">Auto-scroll chat to bottom</p>
+            <Button
+              onClick={() => setAutoScroll(!autoScroll)}
+              variant="ghost"
+              size="sm"
+              className={`h-7 px-2 text-xs ${autoScroll ? 'text-foreground' : 'text-muted-foreground'}`}
+              aria-label={`${autoScroll ? 'Disable' : 'Enable'} auto-scroll`}
+            >
+              {autoScroll ? 'On' : 'Off'}
+            </Button>
+          </div>
           </div>
 
           

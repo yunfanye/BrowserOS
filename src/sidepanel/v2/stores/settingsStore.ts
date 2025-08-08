@@ -5,7 +5,8 @@ import { z } from 'zod'
 // Settings schema
 const SettingsSchema = z.object({
   fontSize: z.number().min(13).max(21).default(14),  // Font size in pixels
-  theme: z.enum(['light', 'dark', 'gray']).default('light')  // App theme
+  theme: z.enum(['light', 'dark', 'gray']).default('light'),  // App theme
+  autoScroll: z.boolean().default(true)  // Auto-scroll chat to bottom
 })
 
 type Settings = z.infer<typeof SettingsSchema>
@@ -14,13 +15,15 @@ type Settings = z.infer<typeof SettingsSchema>
 interface SettingsActions {
   setFontSize: (size: number) => void
   setTheme: (theme: 'light' | 'dark' | 'gray') => void
+  setAutoScroll: (enabled: boolean) => void
   resetSettings: () => void
 }
 
 // Initial state
 const initialState: Settings = {
   fontSize: 14,
-  theme: 'light'
+  theme: 'light',
+  autoScroll: true
 }
 
 // Create the store with persistence
@@ -47,6 +50,10 @@ export const useSettingsStore = create<Settings & SettingsActions>()(
         if (theme === 'gray') root.classList.add('gray')
       },
       
+      setAutoScroll: (enabled) => {
+        set({ autoScroll: enabled })
+      },
+      
       resetSettings: () => {
         set(initialState)
         // Reset document styles
@@ -57,7 +64,7 @@ export const useSettingsStore = create<Settings & SettingsActions>()(
     }),
     {
       name: 'nxtscape-settings',  // localStorage key
-      version: 2,
+      version: 3,
       migrate: (persisted: any, version: number) => {
         // Migrate from v1 isDarkMode -> theme
         if (version === 1 && persisted) {
@@ -67,6 +74,14 @@ export const useSettingsStore = create<Settings & SettingsActions>()(
             theme: isDarkMode ? 'dark' : 'light'
           }
           return next
+        }
+        // Migrate to v3 add autoScroll default true
+        if (version === 2 && persisted) {
+          return {
+            fontSize: typeof persisted.fontSize === 'number' ? persisted.fontSize : 14,
+            theme: persisted.theme === 'dark' || persisted.theme === 'gray' ? persisted.theme : 'light',
+            autoScroll: true
+          } as Settings
         }
         return persisted as Settings
       }

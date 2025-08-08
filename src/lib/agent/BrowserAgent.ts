@@ -478,8 +478,8 @@ export class BrowserAgent {
       
       // Emit tool result for UI display
       // Skip emitting refresh_browser_state_tool to prevent browser state from appearing in UI
-      // The browser state is internal context that should not be shown to users
-      if (toolName !== 'refresh_browser_state_tool') {
+      // Also skip result_tool to avoid duplicating the final summary in the UI
+      if (toolName !== 'refresh_browser_state_tool' && toolName !== 'result_tool') {
         this.eventEmitter.emitToolResult(toolName, result);
       }
 

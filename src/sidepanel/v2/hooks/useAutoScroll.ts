@@ -1,79 +1,92 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useSettingsStore } from '@/sidepanel/v2/stores/settingsStore'
 
 // Throttle function to limit scroll event frequency
-const throttle = (func: Function, limit: number) => {
-  let inThrottle: boolean
-  return function(this: any, ...args: any[]) {
+const throttle = <T extends (...args: unknown[]) => void>(func: T, limit: number) => {
+  let inThrottle = false
+  return (...args: Parameters<T>) => {
     if (!inThrottle) {
-      func.apply(this, args)
+      func(...args)
       inThrottle = true
-      setTimeout(() => inThrottle = false, limit)
+      setTimeout(() => { inThrottle = false }, limit)
     }
   }
 }
+
+// Consider within this distance from bottom as "at bottom"
+const AT_BOTTOM_THRESHOLD_PX = 4
 
 /**
  * Hook to handle auto-scrolling behavior for a scrollable container
  * Automatically scrolls to bottom on new content unless user is scrolling
  */
 export function useAutoScroll<T extends HTMLElement>(
-  dependencies: any[] = []
+  dependencies: unknown[] = [],
+  externalRef?: React.RefObject<T>
 ) {
-  const containerRef = useRef<T>(null)
-  const [isUserScrolling, setIsUserScrolling] = useState(false)
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>()
-  const lastScrollTopRef = useRef<number>(0)
+  // Use external container ref if provided, otherwise manage our own
+  const internalRef = useRef<T>(null)
+  const containerRef = (externalRef ?? internalRef) as React.RefObject<T>
+  const [isUserScrolling, setIsUserScrolling] = useState(false) // reflects auto-scroll disabled when user scrolled up
+  const pinnedToBottomRef = useRef<boolean>(true)
+  const autoScrollEnabled = useSettingsStore(s => s.autoScroll)
 
   // Memoize scroll handler to prevent recreation on every render
   const handleScroll = useCallback(throttle(() => {
     const container = containerRef.current
     if (!container) return
 
-    const currentScrollTop = container.scrollTop
-    const lastScrollTop = lastScrollTopRef.current
-    
-    // Only process if scroll position actually changed
-    if (currentScrollTop === lastScrollTop) return
-    
-    lastScrollTopRef.current = currentScrollTop
-
-    // Check if user is near bottom (within 100px)
-    const isNearBottom = 
-      container.scrollHeight - currentScrollTop - container.clientHeight < 100
-    
-    // If user scrolled away from bottom, they're manually scrolling
-    if (!isNearBottom) {
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+    const isAtBottom = distanceFromBottom <= AT_BOTTOM_THRESHOLD_PX
+    // If user scrolls up (increasing distance), lock off immediately
+    if (!isAtBottom && pinnedToBottomRef.current) {
+      pinnedToBottomRef.current = false
       setIsUserScrolling(true)
-      
-      // Reset after 3 seconds of no scrolling
-      clearTimeout(scrollTimeoutRef.current)
-      scrollTimeoutRef.current = setTimeout(() => {
-        setIsUserScrolling(false)
-      }, 3000)
-    } else {
-      setIsUserScrolling(false)
+      return
     }
+    pinnedToBottomRef.current = isAtBottom
+    setIsUserScrolling(!isAtBottom)
   }, 16), []) // Throttle to ~60fps
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    // Initialize last scroll position
-    lastScrollTopRef.current = container.scrollTop
+    // Initialize pinned state based on current position
+    const initialDistance = container.scrollHeight - container.scrollTop - container.clientHeight
+    const isAtBottom = initialDistance <= AT_BOTTOM_THRESHOLD_PX
+    pinnedToBottomRef.current = isAtBottom
+    setIsUserScrolling(!isAtBottom)
 
     container.addEventListener('scroll', handleScroll, { passive: true })
+
+    // Also monitor direct user interactions (wheel/touch) to lock off auto-scroll immediately
+    const handleUserInteract = () => {
+      const el = containerRef.current
+      if (!el) return
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+      if (dist > AT_BOTTOM_THRESHOLD_PX) {
+        pinnedToBottomRef.current = false
+        setIsUserScrolling(true)
+      }
+    }
+    container.addEventListener('wheel', handleUserInteract, { passive: true })
+    container.addEventListener('touchmove', handleUserInteract, { passive: true })
     
     return () => {
       container.removeEventListener('scroll', handleScroll)
-      clearTimeout(scrollTimeoutRef.current)
+      container.removeEventListener('wheel', handleUserInteract)
+      container.removeEventListener('touchmove', handleUserInteract)
     }
   }, [handleScroll])
 
   // Auto-scroll when dependencies change (new content)
   useEffect(() => {
     const container = containerRef.current
-    if (!container || isUserScrolling) return
+    if (!container) return
+
+    // Auto-scroll only if feature enabled and pinned (user hasn't scrolled up)
+    if (!autoScrollEnabled || !pinnedToBottomRef.current) return
 
     // Use requestAnimationFrame for smooth scrolling
     requestAnimationFrame(() => {

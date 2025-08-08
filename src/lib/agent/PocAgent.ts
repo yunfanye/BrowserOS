@@ -387,8 +387,11 @@ export class PocAgent {
       const displayMessage = formatToolOutput(toolName, parsedResult);
       this.eventEmitter.debug('Executing tool: ' + toolName + ' result: ' + displayMessage);
 
-      // Emit tool result for UI display (always shown)
-      this.eventEmitter.emitToolResult(toolName, result);
+      // Emit tool result for UI display (skip certain tools)
+      // Skip result_tool to avoid duplicating the final summary in the UI
+      if (toolName !== 'result_tool') {
+        this.eventEmitter.emitToolResult(toolName, result);
+      }
 
       // Add the result back to the message history for context
       // add toolMessage before systemReminders as openAI expects each 
