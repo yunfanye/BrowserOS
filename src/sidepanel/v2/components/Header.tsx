@@ -5,7 +5,11 @@ import { MessageType } from '@/lib/types/messaging'
 import { useAnalytics } from '../hooks/useAnalytics'
 import { SettingsModal } from './SettingsModal'
 import { HelpSection } from './HelpSection'
-import { HelpIcon, SettingsIcon, PauseIcon, ResetIcon, GitHubIcon } from './ui/Icons'
+import { HelpIcon, SettingsIcon, PauseIcon, ResetIcon, ChevronDownIcon } from './ui/Icons'
+import { useSettingsStore } from '@/sidepanel/v2/stores/settingsStore'
+import { useEffect } from 'react'
+import { z } from 'zod'
+import { BrowserOSProvidersConfig, BrowserOSProvidersConfigSchema } from '@/lib/llm/settings/types'
 
 const GITHUB_REPO_URL: string = 'https://github.com/browseros-ai/BrowserOS'
 
@@ -21,10 +25,13 @@ interface HeaderProps {
  * Memoized to prevent unnecessary re-renders
  */
 export const Header = memo(function Header({ onReset, showReset, isProcessing }: HeaderProps) {
-  const { sendMessage, connected } = useSidePanelPortMessaging()
+  const { sendMessage, connected, addMessageListener, removeMessageListener } = useSidePanelPortMessaging()
   const { trackClick } = useAnalytics()
   const [showSettings, setShowSettings] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [providersConfig, setProvidersConfig] = useState<BrowserOSProvidersConfig | null>(null)
+  const [providersError, setProvidersError] = useState<string | null>(null)
+  const { theme } = useSettingsStore()
   
   
   const handleCancel = () => {
@@ -56,6 +63,24 @@ export const Header = memo(function Header({ onReset, showReset, isProcessing }:
     setShowHelp(true)
   }
 
+  // Load providers config for default provider dropdown
+  useEffect(() => {
+    const handler = (payload: any) => {
+      if (payload && payload.status === 'success' && payload.data && payload.data.providersConfig) {
+        try {
+          const cfg = BrowserOSProvidersConfigSchema.parse(payload.data.providersConfig)
+          setProvidersConfig(cfg)
+        } catch (err) {
+          setProvidersError(err instanceof Error ? err.message : String(err))
+        }
+      }
+    }
+    addMessageListener<any>(MessageType.WORKFLOW_STATUS, handler)
+    // Initial fetch
+    sendMessage(MessageType.GET_LLM_PROVIDERS as any, {})
+    return () => removeMessageListener<any>(MessageType.WORKFLOW_STATUS, handler)
+  }, [addMessageListener, removeMessageListener, sendMessage])
+
   return (
     <>
       <header 
@@ -63,21 +88,38 @@ export const Header = memo(function Header({ onReset, showReset, isProcessing }:
         role="banner"
       >
 
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => {
-              trackClick('star_github')
-              window.open(GITHUB_REPO_URL, '_blank', 'noopener,noreferrer')
-            }}
-            variant="ghost"
-            size="sm"
-            className="gap-2 hover:bg-brand/5 hover:text-brand transition-all duration-300"
-            aria-label="Star on GitHub"
-            title="Star on GitHub"
-          >
-            <GitHubIcon />
-            Star us on Github
-          </Button>
+        <div className="flex items-center ">
+          {providersConfig && (
+            <div className="relative mt-0.5">
+              <select
+                className={`h-9 w-26 pl-2 pr-8 rounded-lg border ${theme === 'gray' ? 'border-white/40' : 'border-border'} bg-[hsl(var(--header))] text-foreground text-xs font-light appearance-none`}
+                value={providersConfig.defaultProviderId}
+                onChange={(e) => {
+                  const nextId = e.target.value
+                  const nextProviders = providersConfig.providers.map(p => ({ ...p, isDefault: p.id === nextId }))
+                  const nextConfig: BrowserOSProvidersConfig = {
+                    defaultProviderId: nextId,
+                    providers: nextProviders
+                  }
+                  try {
+                    BrowserOSProvidersConfigSchema.parse(nextConfig)
+                    setProvidersConfig(nextConfig)
+                    const ok = sendMessage<BrowserOSProvidersConfig>(MessageType.SAVE_LLM_PROVIDERS as any, nextConfig)
+                    if (!ok) setProvidersError('Failed to send save message')
+                  } catch (err) {
+                    setProvidersError(err instanceof Error ? err.message : String(err))
+                  }
+                }}
+                aria-label="Select default provider"
+                title="Select default provider"
+              >
+                {providersConfig.providers.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground opacity-80" />
+            </div>
+          )}
         </div>
         
 

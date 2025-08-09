@@ -7,7 +7,6 @@ import { XIcon, SunIcon, MoonIcon } from './ui/Icons'
 import { useSettingsStore } from '@/sidepanel/v2/stores/settingsStore'
 import { useSidePanelPortMessaging } from '@/sidepanel/hooks/useSidePanelPortMessaging'
 import { MessageType } from '@/lib/types/messaging'
-import { ProviderSettingsCard } from '@/sidepanel/v2/components/ProviderSettingsCard'
 
 const DISCORD_URL = 'https://discord.com/invite/YKwjt5vuKr'
 
@@ -124,8 +123,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Settings content */}
         <div className="space-y-6">
-          {/* AI Provider */}
-          <ProviderSettingsCard />
 
           {/* Theme selection */}
           <div className="space-y-3">
