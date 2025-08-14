@@ -9,9 +9,20 @@ export class EventProcessor {
   private eventBus: EventBus;
   private currentSegmentId: number = 0;
   private currentMessageId: string = '';
+  private agentName: string = 'BrowserAgent';  // Default agent label
+  private showThinking: boolean = true;  // Whether to use thinking UI lifecycle
 
   constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
+  }
+
+  // Configuration
+  setAgentName(name: string): void {
+    this.agentName = name || 'BrowserAgent';
+  }
+
+  setShowThinking(enabled: boolean): void {
+    this.showThinking = enabled;
   }
 
 
@@ -25,7 +36,7 @@ export class EventProcessor {
     this.eventBus.emitSegmentStart(
       this.currentSegmentId,
       this.currentMessageId,
-      'BrowserAgent'
+      this.agentName
     );
     return this.currentMessageId;
   }
@@ -40,7 +51,7 @@ export class EventProcessor {
       this.currentSegmentId,
       content,
       this.currentMessageId,
-      'BrowserAgent'
+      this.agentName
     );
   }
 
@@ -54,7 +65,7 @@ export class EventProcessor {
       this.currentSegmentId,
       fullContent,
       this.currentMessageId,
-      'BrowserAgent'
+      this.agentName
     );
   }
 
@@ -70,7 +81,7 @@ export class EventProcessor {
       icon: displayInfo.icon,
       description: displayInfo.description,
       args: args || {}
-    }, 'BrowserAgent');
+    }, this.agentName);
   }
 
   /**
@@ -85,7 +96,7 @@ export class EventProcessor {
       result: summary || (success ? 'Completed' : 'Failed'),
       rawResult: {},
       success
-    }, 'BrowserAgent');
+    }, this.agentName);
   }
 
   /**
@@ -114,7 +125,7 @@ export class EventProcessor {
       content: formattedContent,
       success,
       isJson: true
-    }, 'BrowserAgent');
+    }, this.agentName);
   }
 
 
@@ -122,28 +133,28 @@ export class EventProcessor {
    * Emit info message
    */
   info(message: string, category?: string): void {
-    this.eventBus.emitSystemMessage(message, 'info', 'BrowserAgent', category);
+    this.eventBus.emitSystemMessage(message, 'info', this.agentName, category);
   }
 
   /**
    * Emit error
    */
   error(message: string, fatal: boolean = false): void {
-    this.eventBus.emitError(message, undefined, fatal, 'BrowserAgent');
+    this.eventBus.emitError(message, undefined, fatal, this.agentName);
   }
 
   /**
    * Emit debug message (only shown when debug mode is enabled)
    */
   debug(message: string, data?: any): void {
-    this.eventBus.emitDebug(message, data, 'BrowserAgent');
+    this.eventBus.emitDebug(message, data, this.agentName);
   }
 
   /**
    * Emit task result summary
    */
   emitTaskResult(success: boolean, message: string): void {
-    this.eventBus.emitTaskResult(success, message, 'BrowserAgent');
+    this.eventBus.emitTaskResult(success, message, this.agentName);
   }
 
   // Private helper methods

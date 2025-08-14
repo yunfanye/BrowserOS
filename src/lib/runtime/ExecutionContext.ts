@@ -37,6 +37,7 @@ export class ExecutionContext {
   private _isExecuting: boolean = false  // Track actual execution state
   private _lockedTabId: number | null = null  // Tab that execution is locked to
   private _currentTask: string | null = null  // Current user task being executed
+  private _chatMode: boolean = false  // Whether ChatAgent mode is enabled
 
   constructor(options: ExecutionContextOptions) {
     // Validate options at runtime
@@ -51,6 +52,20 @@ export class ExecutionContext {
     this.eventProcessor = validatedOptions.eventProcessor || null
     this.todoStore = validatedOptions.todoStore || new TodoStore()
     this.userInitiatedCancel = false
+  }
+
+  /**
+   * Enable or disable ChatAgent mode
+   */
+  public setChatMode(enabled: boolean): void {
+    this._chatMode = enabled
+  }
+
+  /**
+   * Check if ChatAgent mode is enabled
+   */
+  public isChatMode(): boolean {
+    return this._chatMode
   }
   
   public setSelectedTabIds(tabIds: number[]): void {
