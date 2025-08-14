@@ -4,7 +4,7 @@ import { Slider } from './ui/slider'
 import { cn } from '@/sidepanel/lib/utils'
 import { z } from 'zod'
 import { XIcon, SunIcon, MoonIcon } from './ui/Icons'
-import { useSettingsStore } from '@/sidepanel/v2/stores/settingsStore'
+import { useSettingsStore } from '@/sidepanel/stores/settingsStore'
 import { useSidePanelPortMessaging } from '@/sidepanel/hooks/useSidePanelPortMessaging'
 import { MessageType } from '@/lib/types/messaging'
 

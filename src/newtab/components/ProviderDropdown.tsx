@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 import { useProviderStore } from '../stores/providerStore'
-import { ChevronDownIcon } from '@/sidepanel/v2/components/ui/Icons'
+import { ChevronDownIcon } from '@/sidepanel/components/ui/Icons'
 
 export function ProviderDropdown() {
   const { 

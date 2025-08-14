@@ -8,7 +8,7 @@ import { useChatStore } from '../stores/chatStore'
 import { DogHeadSpinner } from './ui/DogHeadSpinner'
 import { ChevronDownIcon, ChevronUpIcon } from './ui/Icons'
 import { TaskManagerDropdown } from './TaskManagerDropdown'
-import { useSettingsStore } from '@/sidepanel/v2/stores/settingsStore'
+import { useSettingsStore } from '@/sidepanel/stores/settingsStore'
 
 interface MessageItemProps {
   message: Message

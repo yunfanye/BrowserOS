@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useSettingsStore } from '@/sidepanel/v2/stores/settingsStore'
+import { useSettingsStore } from '@/sidepanel/stores/settingsStore'
 
 // Throttle function to limit scroll event frequency
 const throttle = <T extends (...args: unknown[]) => void>(func: T, limit: number) => {
