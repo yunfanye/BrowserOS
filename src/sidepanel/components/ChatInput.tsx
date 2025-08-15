@@ -122,6 +122,14 @@ export function ChatInput({ isConnected, isProcessing }: ChatInputProps) {
       ts: Date.now()
     })
     
+    // Add a "Thinking..." narration message immediately after user query
+    upsertMessage({
+      msgId: `thinking_${Date.now()}`,
+      role: 'narration',
+      content: 'Thinking...',
+      ts: Date.now()
+    })
+    
     // Get selected tab IDs from tabsStore
     const contextTabs = getContextTabs()
     const tabIds = contextTabs.length > 0 ? contextTabs.map(tab => tab.id) : undefined
