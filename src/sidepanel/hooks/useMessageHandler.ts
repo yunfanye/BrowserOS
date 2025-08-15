@@ -13,7 +13,7 @@ export function useMessageHandler() {
       const message = payload.details.payload as PubSubMessage
       
       // Filter out thinking messages, only show narration messages
-      if (message.role === 'thinking') {
+      if (message.role === 'narration') {
         return 
       }
       

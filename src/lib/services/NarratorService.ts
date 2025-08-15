@@ -5,6 +5,7 @@ import { generateNarratorSystemPrompt, generateNarrationPrompt } from './Narrato
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 import { AbortError } from '@/lib/utils/Abortable'
 import { MessageManagerReadOnly, MessageType } from '@/lib/runtime/MessageManager'
+import { config } from '@/config'
 
 /**
  * NarratorService - Runs alongside BrowserAgent to provide human-friendly narrations
@@ -25,6 +26,12 @@ export class NarratorService {
   }
 
   private initialize(): void {
+    // Check if narrator is enabled in config
+    if (!config.ENABLE_NARRATOR) {
+      this.isEnabled = false
+      return 
+    }
+    
     // Subscribe to PubSub events
     const pubsub = this.executionContext.getPubSub()
     
@@ -38,7 +45,7 @@ export class NarratorService {
     if (!this.isEnabled || this.isProcessing) return
     
     // Stop processing if we see an assistant message (thinking is done)
-    if (event.type === 'message' && event.payload.role === 'assistant') {
+    if (event.type === 'message' && (event.payload.role === 'assistant' || event.payload.role === 'error')) {
       this.isEnabled = false
       return
     }

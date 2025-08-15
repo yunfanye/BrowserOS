@@ -125,7 +125,7 @@ export function ChatInput({ isConnected, isProcessing }: ChatInputProps) {
     // Add a "Thinking..." narration message immediately after user query
     upsertMessage({
       msgId: `thinking_${Date.now()}`,
-      role: 'narration',
+      role: 'thinking',
       content: 'Thinking...',
       ts: Date.now()
     })
