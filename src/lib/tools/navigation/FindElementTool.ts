@@ -28,8 +28,7 @@ export class FindElementTool {
 
   async execute(input: FindElementInput): Promise<ToolOutput> {
     try {
-      const messageId = PubSub.generateId('find_element_tool')
-      this.executionContext.getPubSub().publishMessage(PubSub.createMessageWithId(messageId, `Finding element...`, 'thinking'))
+      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Finding element...`, 'thinking'))
       // Get browser state
       const browserState = await this.executionContext.browserContext.getBrowserState()
 
@@ -61,7 +60,7 @@ export class FindElementTool {
         return toolError(`Invalid index ${result.index} returned - element not found`)
       }
       
-      this.executionContext.getPubSub().publishMessage(PubSub.createMessageWithId(messageId, `Found element at index: ${result.index}`, 'thinking'))
+      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Found element at index: ${result.index}`, 'thinking'))
 
       // Return the LLM result directly
       return toolSuccess(JSON.stringify(result))

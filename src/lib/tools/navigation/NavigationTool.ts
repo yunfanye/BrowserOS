@@ -42,6 +42,7 @@ export class NavigationTool {
     }
 
     try {
+      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Navigating to: ${url}`, 'thinking'))
       const normalizedUrl = this._normalizeUrl(url)
       const browserPage = await this.executionContext.browserContext.getCurrentPage()
       await browserPage.navigateTo(normalizedUrl)
@@ -56,8 +57,6 @@ export class NavigationTool {
         browserPage.title()
       ])
       
-      // Emit status message
-      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Opened page: ${currentUrl}`, 'thinking'))
       
       return toolSuccess(`Navigated to ${currentUrl} - ${title}`)
     } catch (error) {

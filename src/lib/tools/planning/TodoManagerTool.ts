@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { ExecutionContext } from '@/lib/runtime/ExecutionContext'
+import { PubSub } from '@/lib/pubsub'
 
 // Simple schema - just action and optional markdown todos
 const TodoInputSchema = z.object({
@@ -14,7 +15,7 @@ type TodoInput = z.infer<typeof TodoInputSchema>
  * Simplified TodoManagerTool that stores and retrieves markdown TODO lists
  * The LLM manages all state - we just store/retrieve the markdown string
  */
-export function createTodoManagerTool(_executionContext: ExecutionContext): DynamicStructuredTool {
+export function createTodoManagerTool(executionContext: ExecutionContext): DynamicStructuredTool {
   // Simple in-memory storage for the markdown TODO list
   let markdownTodos = ''
   
@@ -28,20 +29,31 @@ Keep todos single-level without nesting.`,
     schema: TodoInputSchema,
     func: async (args: TodoInput): Promise<string> => {
       try {
-        if (args.action === 'set') {
-          // Store the markdown string as-is
-          markdownTodos = args.todos || ''
+        executionContext.getPubSub().publishMessage(PubSub.createMessage(`Updating TODO list`, 'thinking'))
+
+        let resultMessage = 'Success'
+        
+        switch (args.action) {
+          case 'set':
+            // Store the markdown string as-is
+            markdownTodos = args.todos || ''
+            return JSON.stringify({
+              ok: true,
+              output: 'Todos updated'
+            })
           
-          return JSON.stringify({
-            ok: true,
-            output: 'Todos updated'
-          })
-        } else {
-          // Return the stored markdown string
-          return JSON.stringify({
-            ok: true,
-            output: markdownTodos
-          })
+          case 'get':
+            // Return the stored markdown string
+            return JSON.stringify({
+              ok: true,
+              output: markdownTodos
+            })
+            
+          default:
+            return JSON.stringify({
+              ok: false,
+              output: 'Invalid action'
+            })
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)

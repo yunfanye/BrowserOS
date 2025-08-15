@@ -134,6 +134,7 @@ export class InteractionTool {
   private async _clickElement(description: string): Promise<ToolOutput> {
     for (let attempt = 1; attempt <= NUM_RETRIES; attempt++) {
       try {
+        this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Finding element to click with description: ${description}`, 'thinking'))
         // Find element (returns nodeId)
         const nodeId = await this._findElement(description, 'click')
         
@@ -155,7 +156,7 @@ export class InteractionTool {
         await new Promise(resolve => setTimeout(resolve, INTERACTION_WAIT_MS))
         
         // Emit status message
-        this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Clicked: ${description}`, 'thinking'))
+        this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Clicked element: ${description}`, 'thinking'))
         
         return toolSuccess(`Clicked element: "${description}"`)
         
@@ -173,6 +174,7 @@ export class InteractionTool {
   private async _inputTextElement(description: string, text: string): Promise<ToolOutput> {
     for (let attempt = 1; attempt <= NUM_RETRIES; attempt++) {
       try {
+        this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Finding element to type into with description: ${description}`, 'thinking'))
         // Find element (returns nodeId)
         const nodeId = await this._findElement(description, 'type')
         
@@ -208,6 +210,7 @@ export class InteractionTool {
   private async _clearElement(description: string): Promise<ToolOutput> {
     for (let attempt = 1; attempt <= NUM_RETRIES; attempt++) {
       try {
+        this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Finding element to clear with description: ${description}`, 'thinking'))
         // Find element (returns nodeId)
         const nodeId = await this._findElement(description, 'type')
         
@@ -239,6 +242,7 @@ export class InteractionTool {
   }
 
   private async _sendKeys(keys: string): Promise<ToolOutput> {
+    this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Sending keys: ${keys}`, 'thinking'))
     const page = await this.executionContext.browserContext.getCurrentPage()
     await page.sendKeys(keys)
     

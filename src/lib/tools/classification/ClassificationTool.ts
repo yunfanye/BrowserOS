@@ -37,9 +37,9 @@ export class ClassificationTool {
 
   async execute(input: ClassificationInput): Promise<string> {
     try {
+      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Classifying task...`, 'thinking'))
       // Get LLM instance
       const llm = await this.executionContext.getLLM()
-      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Classifying task...`, 'thinking'))
       
       // Get recent message history
       const reader = new MessageManagerReadOnly(this.executionContext.messageManager)

@@ -2,17 +2,43 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { ExecutionContext } from '@/lib/runtime/ExecutionContext';
 import { refreshStateToolDescription } from './RefreshStateTool.prompt';
+import { toolSuccess, toolError, type ToolOutput } from "@/lib/tools/Tool.interface"
+import { PubSub } from '@/lib/pubsub'
 
-/**
- * Creates a RefreshStateTool that provides FULL, COMPLEX browser state.
- * This is an EMERGENCY tool for when the agent is completely stuck.
- * 
- * Unlike other tools that get simplified state, this provides exhaustive DOM details
- * to help diagnose why automation is failing.
- * 
- * @param executionContext - The execution context containing browser state
- * @returns A configured RefreshStateTool
- */
+// Input schema - no inputs needed
+export const RefreshStateInputSchema = z.object({})
+
+export type RefreshStateInput = z.infer<typeof RefreshStateInputSchema>
+
+export class RefreshStateTool {
+  constructor(private executionContext: ExecutionContext) {}
+
+  async execute(_input: RefreshStateInput): Promise<ToolOutput> {
+    try {
+
+      const browserContext = this.executionContext.browserContext
+      if (!browserContext) {
+        return toolError("Browser context not available")
+      }
+
+      // Get current page
+      const currentPage = await browserContext.getCurrentPage()
+      if (!currentPage) {
+        return toolError("No active page to refresh state from")
+      }
+
+      // Get fresh browser state - use simplified mode for cleaner output
+      const browserState = await browserContext.getBrowserStateString(true)
+
+      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Refreshed browser state...`, 'thinking'))
+      return toolSuccess(browserState)
+    } catch (error) {
+      return toolError(`Failed to refresh browser state: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+}
+
+// LangChain wrapper factory function
 export function createRefreshStateTool(executionContext: ExecutionContext): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: 'refresh_browser_state_tool',

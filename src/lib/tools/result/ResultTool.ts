@@ -30,8 +30,7 @@ export function createResultTool(executionContext: ExecutionContext): DynamicStr
     func: async (args: ResultInput): Promise<string> => {
       try {
         // Get LLM instance from execution context
-        const messageId = PubSub.generateId('result_tool')
-        executionContext.getPubSub().publishMessage(PubSub.createMessageWithId(messageId, `Generating result...`, 'thinking'));
+        executionContext.getPubSub().publishMessage(PubSub.createMessage(`Generating result for task: ${args.task} after execution`, 'thinking'));
         const llm = await executionContext.getLLM({temperature: 0.3});
         
         // Get message history - filter to only tool messages
@@ -63,7 +62,7 @@ export function createResultTool(executionContext: ExecutionContext): DynamicStr
           3
         );
         
-        executionContext.getPubSub().publishMessage(PubSub.createMessageWithId(messageId, `Generated result...`, 'thinking'))
+        executionContext.getPubSub().publishMessage(PubSub.createMessage(`Generated result for task: ${args.task}`, 'thinking'))
         
         // Format and return result
         return JSON.stringify({

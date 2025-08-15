@@ -23,7 +23,7 @@ export class GroupTabsTool {
   async execute(input: GroupTabsInput): Promise<ToolOutput> {
     try {
       // Get current window ID
-      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Grouping tabs...`, 'thinking'))
+      this.executionContext.getPubSub().publishMessage(PubSub.createMessage(`Grouping tabs ${input.tabIds.join(", ")} with name: ${input.groupName}`, 'thinking'))
       const currentTab = await chrome.tabs.getCurrent()
       const windowId = currentTab?.windowId
       
