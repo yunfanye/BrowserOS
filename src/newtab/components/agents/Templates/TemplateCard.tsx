@@ -18,11 +18,11 @@ export function TemplateCard ({ template, onPreview, onUse }: TemplateCardProps)
         {template.description}
       </div>
       <div className='mt-2 flex items-center justify-between'>
-        <span className='text-xs text-muted-foreground px-1.5 py-0.5 rounded border'>
+        <span className='text-xs text-muted-foreground px-1.5 py-1 rounded border'>
           {template.steps.length} steps
         </span>
         <button
-          className='px-3 py-1.5 text-sm rounded border border-[hsl(var(--brand))] text-[hsl(var(--brand))] hover:bg-[hsl(var(--brand)/0.08)]'
+          className='px-2.5 py-1 text-xs rounded border border-[hsl(var(--brand))] text-[hsl(var(--brand))] hover:bg-[hsl(var(--brand)/0.08)]'
           onClick={(e) => {
             e.stopPropagation()
             onUse(template)

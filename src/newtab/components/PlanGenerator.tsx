@@ -165,7 +165,7 @@ export function PlanGenerator ({
         <div className="flex items-center">
           <div className="flex-1 px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground bg-background relative">
             <Hammer className="w-4 h-4" />
-            Plan Generator
+            Agent generator
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
           </div>
         </div>
@@ -306,7 +306,7 @@ export function PlanGenerator ({
                   {currentPlan?.goal && inputText.trim() ? 'Refining Plan...' : 'Generating Plan...'}
                 </span>
               ) : (
-                currentPlan?.goal && inputText.trim() ? 'Refine Plan with AI' : currentPlan?.goal ? 'Regenerate Plan' : 'Generate Plan with AI'
+                currentPlan?.goal && inputText.trim() ? 'Refine Plan with AI' : currentPlan?.goal ? 'Regenerate Plan' : 'Build Agent with AI'
               )}
             </button>
             {/* Removed keyboard shortcut hint */}
