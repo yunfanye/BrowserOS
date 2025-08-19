@@ -13,7 +13,7 @@ interface AgentListProps {
 
 export function AgentList ({ agents, onEdit, onDelete, onNew }: AgentListProps) {
   return (
-    <section>
+    <section className='relative -mx-4 px-4 py-4 rounded-lg bg-gradient-to-br from-[hsl(var(--brand)/0.03)] to-[hsl(var(--brand)/0.06)]'>
       <div className='flex items-center justify-between mb-3'>
         <h2 className='text-[18px] font-semibold tracking-tight'>Your agents</h2>
         <button 

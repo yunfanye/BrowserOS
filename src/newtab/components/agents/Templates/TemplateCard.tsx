@@ -28,7 +28,7 @@ export function TemplateCard ({ template, onPreview, onUse }: TemplateCardProps)
             onUse(template)
           }}
         >
-          Use this template
+          use
         </button>
       </div>
     </div>

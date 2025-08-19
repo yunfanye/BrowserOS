@@ -19,7 +19,7 @@ export function TemplateGrid ({ onUseTemplate }: TemplateGridProps) {
   return (
     <>
       <section>
-        <h2 className='text-[18px] font-semibold tracking-tight mb-4'>Templates</h2>
+        <h2 className='text-[18px] font-semibold tracking-tight mb-4'>Agent templates</h2>
         <div className='grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'>
           {TEMPLATES.map(template => (
             <TemplateCard
