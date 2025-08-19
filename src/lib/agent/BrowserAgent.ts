@@ -44,6 +44,7 @@
 import { ExecutionContext } from '@/lib/runtime/ExecutionContext';
 import { MessageManager } from '@/lib/runtime/MessageManager';
 import { ToolManager } from '@/lib/tools/ToolManager';
+import { ExecutionMetadata } from '@/lib/types/messaging';
 import { createPlannerTool } from '@/lib/tools/planning/PlannerTool';
 import { createTodoManagerTool } from '@/lib/tools/planning/TodoManagerTool';
 import { createRequirePlanningTool } from '@/lib/tools/planning/RequirePlanningTool';
@@ -186,13 +187,39 @@ export class BrowserAgent {
   /**
    * Main entry point.
    * Orchestrates classification and delegates to the appropriate execution strategy.
+   * @param task - The task/query to execute
+   * @param metadata - Optional execution metadata for controlling execution mode
    */
-  async execute(task: string): Promise<void> {
+  async execute(task: string, metadata?: ExecutionMetadata): Promise<void> {
     try {
       // 1. SETUP: Initialize system prompt and user task
       this._initializeExecution(task);
 
-      // 2. CLASSIFY: Determine the task type
+      // 2. CHECK FOR PREDEFINED PLAN
+      if (metadata?.executionMode === 'predefined' && metadata.predefinedPlan) {
+        // Treat predefined plan as a fresh (non-follow-up) task: clear history and re-init
+        this.messageManager.clear();
+        this._initializeExecution(task);
+        // Route predefined plan through the multi-step strategy using initial plan
+        const predefined = metadata!.predefinedPlan!;
+        this.pubsub.publishMessage(PubSub.createMessage(`Executing agent: ${predefined.name || 'Custom Agent'}`, 'thinking'));
+        // Convert predefined steps to Plan structure
+        const initialPlan: Plan = {
+          steps: predefined.steps.map(step => ({ action: step, reasoning: `Part of agent: ${predefined.name || 'Custom'}` }))
+        };
+        if (predefined.goal) {
+          this.messageManager.addHuman(`User's goal is: ${predefined.goal} and this is the task: ${task}`);
+        }
+        await this._executeMultiStepStrategy(task, initialPlan);
+        await this._generateTaskResult(task);
+        return;
+      }
+      else if (metadata?.executionMode === 'dynamic' && metadata?.source === 'newtab') {
+        // For tasks initiated from new tab, show the startup message with task
+        this.pubsub.publishMessage(PubSub.createMessage(`Executing task: ${task}`, 'thinking'));
+      }
+
+      // 3. STANDARD FLOW: CLASSIFY task type
       const classification = await this._classifyTask(task);
       
       // Clear message history if this is not a follow-up task
@@ -211,14 +238,14 @@ export class BrowserAgent {
       }
       this.pubsub.publishMessage(PubSub.createMessage(message, 'narration'));
 
-      // 3. DELEGATE: Route to the correct execution strategy
+      // 4. DELEGATE: Route to the correct execution strategy
       if (classification.is_simple_task) {
         await this._executeSimpleTaskStrategy(task);
       } else {
         await this._executeMultiStepStrategy(task);
       }
 
-      // 4. FINALISE: Generate final result
+      // 5. FINALISE: Generate final result
       await this._generateTaskResult(task);
     } catch (error) {
       this._handleExecutionError(error, task);
@@ -384,15 +411,23 @@ export class BrowserAgent {
   // ===================================================================
   //  Execution Strategy 2: Multi-Step Tasks (Plan -> Execute -> Repeat)
   // ===================================================================
-  private async _executeMultiStepStrategy(task: string): Promise<void> {
+  private async _executeMultiStepStrategy(task: string, initialPlan?: Plan): Promise<void> {
     // Debug: Executing as a complex multi-step task
     let outer_loop_index = 0;
 
     while (outer_loop_index < BrowserAgent.MAX_STEPS_OUTER_LOOP) {
       this.checkIfAborted();
 
-      // 1. PLAN: Create a new plan
-      const plan = await this._createMultiStepPlan(task);
+      // 1. PLAN: Use provided initial plan for first cycle, otherwise create a new plan
+      let plan: Plan;
+      if (outer_loop_index === 0 && initialPlan) {
+        // Use the provided initial plan without creating a new one
+        plan = initialPlan;
+        this.pubsub.publishMessage(PubSub.createMessage(`Using predefined plan with ${initialPlan.steps.length} steps`, 'thinking'));
+      } else {
+        // Create a new plan for subsequent iterations or when no initial plan
+        plan = await this._createMultiStepPlan(task);
+      }
 
       // 2. Convert plan to TODOs
       await this._updateTodosFromPlan(plan);

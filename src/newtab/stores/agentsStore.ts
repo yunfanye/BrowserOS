@@ -7,9 +7,9 @@ export const AgentSchema = z.object({
   name: z.string().min(2).max(50),  // Display name
   description: z.string().max(200),  // Brief description
   goal: z.string().min(10),  // Primary objective
-  tools: z.array(z.string()).default([]),  // Tool identifiers
-  provider: z.enum(['openai', 'anthropic', 'ollama', 'nxtscape']),  // LLM provider
-  model: z.string().min(1),  // Model identifier
+  steps: z.array(z.string()).default([]),  // Execution steps
+  notes: z.array(z.string()).optional(),  // Additional notes and context
+  tools: z.array(z.string()).default([]),  // Tool identifiers (future)
   isPinned: z.boolean().default(false),  // Show on new tab
   lastUsed: z.number().int().nullable(),  // Last execution timestamp
   createdAt: z.number().int(),  // Creation timestamp
@@ -56,7 +56,7 @@ export const useAgentsStore = create<AgentsState & AgentsActions>((set, get) => 
   addAgent: (agentData) => {
     const newAgent: Agent = {
       ...agentData,
-      id: `agent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: crypto.randomUUID(),
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
@@ -67,7 +67,8 @@ export const useAgentsStore = create<AgentsState & AgentsActions>((set, get) => 
     }))
     
     // Persist to storage
-    chrome.storage.local.set({ agents: [...get().agents, newAgent] })
+    // get().agents already includes the newly added agent after set()
+    chrome.storage.local.set({ agents: get().agents })
   },
   
   updateAgent: (id, updates) => {

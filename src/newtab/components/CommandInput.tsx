@@ -1,15 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ProviderDropdown } from './ProviderDropdown'
+import { CommandPalette } from './CommandPalette'
 import { useProviderStore } from '../stores/providerStore'
-import { executeProviderAction } from '../utils/providerActions'
+import { useAgentsStore } from '../stores/agentsStore'
 
-export function CommandInput() {
+interface CommandInputProps {
+  onCreateAgent?: () => void
+}
+
+export function CommandInput({ onCreateAgent }: CommandInputProps = {}) {
   const [value, setValue] = useState('')
   const [isFocused, setIsFocused] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
+  const [isExecutingAgent, setIsExecutingAgent] = useState(false)
+  const [executingAgentName, setExecutingAgentName] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   
-  const { getSelectedProvider } = useProviderStore()
+  const { getSelectedProvider, executeProviderAction, executeAgent } = useProviderStore()
+  const { agents, selectedAgentId } = useAgentsStore()
   
   const selectedProvider = getSelectedProvider()
   
@@ -22,10 +30,24 @@ export function CommandInput() {
     e.preventDefault()
     if (!value.trim()) return
     
+    // Don't submit if command palette is open
+    if (showCommandPalette) return
+    
     const query = value.trim()
     
-    // Execute provider-specific action
-    if (selectedProvider) {
+    console.log('CommandInput handleSubmit:', { selectedAgentId, agents, query })
+    
+    // Execute provider-specific action or agent
+    if (selectedAgentId) {
+      // Execute selected agent
+      const agent = agents.find(a => a.id === selectedAgentId)
+      console.log('Found agent:', agent)
+      if (agent) {
+        console.log('Executing agent:', agent.name, 'with query:', query)
+        await executeAgent(agent, query)
+      }
+    } else if (selectedProvider) {
+      console.log('Executing provider:', selectedProvider.name, 'with query:', query)
       await executeProviderAction(selectedProvider, query)
     }
     
@@ -55,9 +77,9 @@ export function CommandInput() {
     <form onSubmit={handleSubmit} className="relative">
       <div className={`
         relative flex items-center gap-3
-        bg-card border rounded-xl
-        transition-all duration-200
-        ${isFocused ? 'border-primary shadow-lg' : 'border-border'}
+        bg-background/80 backdrop-blur-sm border-2 rounded-xl
+        transition-all duration-300 ease-out
+        ${isFocused ? 'border-[hsl(var(--brand))]/60 shadow-lg' : 'border-[hsl(var(--brand))]/30 hover:border-[hsl(var(--brand))]/50 hover:bg-background/90'}
         px-4 py-3
       `}>
         {/* Provider Dropdown */}
@@ -68,7 +90,17 @@ export function CommandInput() {
           ref={inputRef}
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            const newValue = e.target.value
+            setValue(newValue)
+            
+            // Show command palette when user types '/'
+            if (newValue === '/' || (newValue.startsWith('/') && showCommandPalette)) {
+              setShowCommandPalette(true)
+            } else {
+              setShowCommandPalette(false)
+            }
+          }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholder={getPlaceholder()}
@@ -84,15 +116,47 @@ export function CommandInput() {
         
       </div>
       
-      {/* Suggestions Dropdown */}
-      {showSuggestions && (
-        <div className="
-          absolute top-full left-0 right-0 mt-2
-          bg-card border border-border rounded-lg shadow-lg
-          py-2 z-10
-        ">
-          {/* Suggestions content */}
-        </div>
+      {/* Command Palette */}
+      {showCommandPalette && (
+        <CommandPalette
+          searchQuery={value}
+          onSelectAgent={async (agentId) => {
+            // Find and execute the agent immediately
+            const agent = agents.find(a => a.id === agentId)
+            if (agent) {
+              // Update UI to show agent is executing
+              setIsExecutingAgent(true)
+              setExecutingAgentName(agent.name)
+              setValue(`Executing agent: ${agent.name}`)
+              setShowCommandPalette(false)
+              
+              // Execute the agent with its goal as the query
+              console.log('Executing agent immediately:', agent.name)
+              await executeAgent(agent, agent.goal)
+              
+              // Reset after a short delay
+              setTimeout(() => {
+                setIsExecutingAgent(false)
+                setExecutingAgentName('')
+                setValue('')
+                inputRef.current?.focus()
+              }, 2000)
+            }
+          }}
+          onCreateAgent={() => {
+            // Navigate to agent creation view
+            if (onCreateAgent) {
+              onCreateAgent()
+            }
+            setValue('')
+            setShowCommandPalette(false)
+          }}
+          onClose={() => {
+            setShowCommandPalette(false)
+            setValue('')
+            inputRef.current?.focus()
+          }}
+        />
       )}
     </form>
   )

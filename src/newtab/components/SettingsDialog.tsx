@@ -43,6 +43,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       addCustomProvider({
         name: newProviderName.trim(),
         category: newProviderCategory,
+        actionType: 'url',
         urlPattern
       })
       
