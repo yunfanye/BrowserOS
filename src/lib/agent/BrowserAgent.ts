@@ -508,7 +508,7 @@ export class BrowserAgent {
     // This method encapsulates the streaming logic
     const llmResponse = await this._invokeLLMWithStreaming();
 
-    // console.log(`K tokens:\n${JSON.stringify(llmResponse, null, 2)}`)
+    console.log(`K tokens:\n${JSON.stringify(llmResponse, null, 2)}`)
 
     const result: SingleTurnResult = {
       doneToolCalled: false,

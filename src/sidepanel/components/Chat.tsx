@@ -40,31 +40,8 @@ export function Chat({ isConnected }: ChatProps) {
     setShowSelectTabsButton(prev => !prev)
   }
 
-  // Listen for MCP server status
-  useEffect(() => {
-    const handleMCPStatus = (payload: any) => {
-      // Don't show deletion messages in chat - they're handled by the header toast
-      if (payload.status === 'deleted') {
-        return
-      }
-      
-      const status = payload.status === 'success' 
-        ? `✓ Connected to ${payload.serverId}`
-        : payload.status === 'auth_failed'
-        ? `Authentication required for ${payload.serverId}. Please complete the authentication process.`
-        : `Failed to connect to ${payload.serverId || 'server'}: ${payload.error || 'Unknown error'}`
-      
-      upsertMessage({
-        msgId: `mcp_status_${Date.now()}`,
-        role: 'assistant',
-        content: status,
-        ts: Date.now()
-      })
-    }
-    
-    addMessageListener(MessageType.MCP_SERVER_STATUS, handleMCPStatus)
-    return () => removeMessageListener(MessageType.MCP_SERVER_STATUS, handleMCPStatus)
-  }, [addMessageListener, removeMessageListener, upsertMessage])
+  // Note: MCP server status messages are handled by the Header component's toast notifications
+  // We don't show them in the chat to keep the conversation clean
 
   return (
     <div className="flex flex-col h-full bg-background-alt">
