@@ -26,7 +26,7 @@ const DEFAULT_OPENAI_MODEL = "gpt-4o"
 const DEFAULT_ANTHROPIC_MODEL = 'claude-4-sonnet'
 const DEFAULT_OLLAMA_MODEL = "qwen3:4b"
 const DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
-const DEFAULT_NXTSCAPE_PROXY_URL = "http://llm.nxtscape.ai"
+const DEFAULT_NXTSCAPE_PROXY_URL = "https://llm.browseros.com/default/"
 const DEFAULT_NXTSCAPE_MODEL = "default-llm"
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
@@ -278,10 +278,10 @@ export class LangChainProvider {
       temperature,
       maxTokens,
       streaming,
-      openAIApiKey: process.env.LITELLM_API_KEY || 'nokey',
+      openAIApiKey: 'nokey',
       configuration: {
         baseURL: DEFAULT_NXTSCAPE_PROXY_URL,
-        apiKey: process.env.LITELLM_API_KEY || 'nokey',
+        apiKey: 'nokey',
         dangerouslyAllowBrowser: true
       }
     })
