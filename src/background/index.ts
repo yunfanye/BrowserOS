@@ -334,6 +334,14 @@ function handlePortMessage(message: PortMessage, port: chrome.runtime.Port): voi
         }
         break
         
+      case MessageType.PLAN_EDIT_RESPONSE:
+        // Forward plan edit response to the execution context
+        if (nxtScape) {
+          const pubsub = PubSub.getInstance()
+          pubsub.publishPlanEditResponse(payload as any)
+        }
+        break
+        
       case MessageType.RESET_CONVERSATION:
         handleResetConversationPort(payload as ResetConversationMessage['payload'], port, id)
         break

@@ -1,85 +1,170 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { cn } from '@/sidepanel/lib/utils'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Edit2, Check, X, Plus, Trash2, GripVertical } from 'lucide-react'
 import { z } from 'zod'
+import { useChatStore } from '@/sidepanel/stores/chatStore'
 
-// Define the task schema with Zod
 const TaskSchema = z.object({
-  id: z.string(),  // Task ID
-  status: z.string(),  // Task status (✅, 🔄, etc.)
-  content: z.string()  // Task description
+  id: z.string(),
+  status: z.string(),
+  content: z.string(),
+  order: z.number().optional(),
+  isEditable: z.boolean().default(true)
 })
 
-// Define the props schema with Zod
-const TaskManagerDropdownPropsSchema = z.object({
-  content: z.string(),  // Raw markdown table content
-  className: z.string().optional()  // Optional CSS classes
-})
-
-// Infer types from schemas
 type Task = z.infer<typeof TaskSchema>
-type TaskManagerDropdownProps = z.infer<typeof TaskManagerDropdownPropsSchema>
 
-// Small orange light component for completed tasks
-const CompletionLight = ({ isCompleted }: { isCompleted: boolean }) => (
-  <div className="flex-shrink-0">
-    <div 
-      className={cn(
-        "w-2 h-2 rounded-full transition-colors duration-200",
-        isCompleted 
-          ? "bg-orange-500 shadow-sm" // Brand color equivalent
-          : "bg-gray-300 dark:bg-gray-600"
-      )}
-    />
-  </div>
-)
+interface TaskManagerDropdownProps {
+  content: string
+  className?: string
+  isEditable?: boolean
+  onTasksChange?: (tasks: Task[]) => void
+  onExecute?: (tasks: Task[]) => void
+  onCancel?: () => void
+}
 
-export function TaskManagerDropdown({ content, className }: TaskManagerDropdownProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
+export function TaskManagerDropdown({ content, className, isEditable = false, onTasksChange, onExecute, onCancel }: TaskManagerDropdownProps) {
+  const [isExpanded, setIsExpanded] = useState(isEditable)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [localTasks, setLocalTasks] = useState<Task[]>([])
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
 
-  // Parse tasks from markdown table content
+  useEffect(() => {
+    if (editingTaskId && editInputRef.current) {
+      editInputRef.current.focus()
+      editInputRef.current.select()
+    }
+  }, [editingTaskId])
+
   const tasks = useMemo(() => {
     const lines = content.split('\n')
-    const taskLines = lines.filter(line => {
-      const trimmedLine = line.trim()
-      if (!trimmedLine.startsWith('|')) return false
-      
-      const parts = trimmedLine.split('|').map(p => p.trim())
-      // Skip header line (contains "Status" and "Task")
-      if (parts.includes('Status') && parts.includes('Task')) return false
-      // Skip separator line (contains only dashes and colons)
-      if (parts.every(part => part === '' || part.includes(':-'))) return false
-      
-      return true
-    })
-
-    return taskLines.map(line => {
-      const cells = line.split('|').filter(cell => cell.trim())
-      if (cells.length >= 3) {
+    
+    const parsedTasks = lines
+      .map((line, index) => {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('- [ ]') && !trimmed.startsWith('- [x]')) return null
+        
+        const isCompleted = trimmed.startsWith('- [x]')
+        const taskContent = trimmed.replace(/^- \[[x ]\] /, '')
+        
         return {
-          id: cells[0].trim(),
-          status: cells[1].trim(),
-          content: cells[2].trim()
+          id: `task-${index}`,
+          status: isCompleted ? '✓' : '○',
+          content: taskContent,
+          order: index,
+          isEditable: true
         }
-      }
-      return null
-    }).filter(Boolean) as Task[]
-  }, [content])
+      })
+      .filter(Boolean) as Task[]
 
-  // Count completed tasks
+    if (isEditable && parsedTasks.length > 0) {
+      setLocalTasks(parsedTasks)
+    }
+
+    return parsedTasks
+  }, [content, isEditable])
+
+  // Use local tasks if in edit mode, otherwise use parsed tasks
+  const displayTasks = isEditable ? localTasks : tasks
+
   const completedCount = useMemo(() => {
-    return tasks.filter(task => task.status.includes('✅')).length
-  }, [tasks])
+    return displayTasks.filter(task => task.status === '✓').length
+  }, [displayTasks])
 
-  // Check if task is completed
-  const isTaskCompleted = (task: Task) => task.status.includes('✅')
+  const startEdit = useCallback((task: Task) => {
+    setEditingTaskId(task.id)
+    setEditText(task.content)
+  }, [])
 
-  // Show only first 6 tasks when expanded
-  const MAX_VISIBLE_TASKS = 6
-  const visibleTasks = tasks.slice(0, MAX_VISIBLE_TASKS)
-  const hasMoreTasks = tasks.length > MAX_VISIBLE_TASKS
+  const saveEdit = useCallback(() => {
+    if (!editingTaskId) return
 
-  if (tasks.length === 0) {
+    const updatedTasks = localTasks.map(task =>
+      task.id === editingTaskId
+        ? { ...task, content: editText.trim() }
+        : task
+    )
+    setLocalTasks(updatedTasks)
+    setEditingTaskId(null)
+    setEditText('')
+
+    // Notify parent of changes
+    onTasksChange?.(updatedTasks)
+  }, [editingTaskId, editText, localTasks, onTasksChange])
+
+  const cancelEdit = useCallback(() => {
+    setEditingTaskId(null)
+    setEditText('')
+  }, [])
+
+  const addTask = useCallback(() => {
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      status: '○',
+      content: 'New step',
+      order: localTasks.length,
+      isEditable: true
+    }
+    const updatedTasks = [...localTasks, newTask]
+    setLocalTasks(updatedTasks)
+    onTasksChange?.(updatedTasks)
+    setTimeout(() => startEdit(newTask), 50)
+  }, [localTasks, onTasksChange, startEdit])
+
+  const deleteTask = useCallback((taskId: string) => {
+    const updatedTasks = localTasks.filter(task => task.id !== taskId)
+      .map((task, index) => ({ ...task, order: index }))
+    setLocalTasks(updatedTasks)
+    onTasksChange?.(updatedTasks)
+  }, [localTasks, onTasksChange])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      saveEdit()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      cancelEdit()
+    }
+  }, [saveEdit, cancelEdit])
+
+  const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
+    setDraggedTaskId(taskId)
+    e.dataTransfer.effectAllowed = 'move'
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault()
+    if (!draggedTaskId || draggedTaskId === targetTaskId) return
+
+    const draggedIndex = localTasks.findIndex(t => t.id === draggedTaskId)
+    const targetIndex = localTasks.findIndex(t => t.id === targetTaskId)
+
+    if (draggedIndex === -1 || targetIndex === -1) return
+
+    const newTasks = [...localTasks]
+    const [draggedTask] = newTasks.splice(draggedIndex, 1)
+    newTasks.splice(targetIndex, 0, draggedTask)
+
+    const reorderedTasks = newTasks.map((task, index) => ({ ...task, order: index }))
+    setLocalTasks(reorderedTasks)
+    setDraggedTaskId(null)
+    onTasksChange?.(reorderedTasks)
+  }, [draggedTaskId, localTasks, onTasksChange])
+
+  const isTaskCompleted = (task: Task) => task.status === '✓'
+  const MAX_VISIBLE_TASKS = isEditable ? 20 : 6
+  const visibleTasks = displayTasks.slice(0, MAX_VISIBLE_TASKS)
+  const hasMoreTasks = displayTasks.length > MAX_VISIBLE_TASKS
+
+  if (displayTasks.length === 0 && !isEditable) {
     return (
       <div className={cn("my-1", className)}>
         <div className="flex items-center gap-2">
@@ -93,43 +178,151 @@ export function TaskManagerDropdown({ content, className }: TaskManagerDropdownP
   return (
     <div className={cn("my-1", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm text-foreground">Task Manager</span>
+      {!isEditable && (
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm text-foreground">Task Manager</span>
+          </div>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ml-4"
+            aria-label={isExpanded ? 'Collapse task list' : 'Expand task list'}
+          >
+            <span>{completedCount}/{displayTasks.length} completed</span>
+            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
-        
-        {/* Expand/Collapse button */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ml-4"
-          aria-label={isExpanded ? 'Collapse task list' : 'Expand task list'}
-        >
-          <span>{completedCount}/{tasks.length} completed</span>
-          {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-        </button>
-      </div>
+      )}
 
       {/* Expanded Task List */}
       {isExpanded && (
-        <div className="space-y-1 max-h-48 overflow-y-auto pt-2">
+        <div className="space-y-0 max-h-64 overflow-y-auto pb-4">
           {visibleTasks.map((task, index) => (
-            <div 
-              key={index} 
-              className="flex items-center gap-2 py-1 text-xs"
-            >
-              <CompletionLight isCompleted={isTaskCompleted(task)} />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate text-foreground">
-                  {task.content}
+            <div key={task.id} className="group/step">
+              <div
+                className={cn(
+                  "flex items-center gap-2 py-1.5 px-1 text-xs",
+                  isEditable && "hover:bg-muted/20",
+                  draggedTaskId === task.id && "opacity-50"
+                )}
+                draggable={isEditable && editingTaskId !== task.id}
+                onDragStart={(e) => handleDragStart(e, task.id)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, task.id)}
+              >
+                {/* Step number */}
+                <span className="text-muted-foreground font-medium min-w-[50px]">
+                  Step {index + 1}
+                </span>
+                
+                {/* Task content */}
+                <div className="flex-1 min-w-0">
+                  {editingTaskId === task.id ? (
+                    <input
+                      ref={editInputRef}
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onBlur={saveEdit}
+                      className="w-full px-1 py-0.5 text-xs bg-transparent border-b border-border focus:outline-none focus:border-brand"
+                      placeholder="Enter step description..."
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        "truncate text-foreground",
+                        isEditable && "cursor-pointer"
+                      )}
+                      onClick={isEditable ? () => startEdit(task) : undefined}
+                      title={task.content}
+                    >
+                      {task.content}
+                    </div>
+                  )}
                 </div>
+
+                {/* Delete button */}
+                {isEditable && editingTaskId !== task.id && (
+                  <button
+                    onClick={() => deleteTask(task.id)}
+                    className="opacity-0 group-hover/step:opacity-100 p-0.5 hover:bg-red-50 text-red-400 hover:text-red-600 rounded transition-all"
+                    title="Delete step"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
               </div>
+              
+              {/* Add step line below each step on hover */}
+              {isEditable && (
+                <div className="group/add-line relative opacity-0 group-hover/step:opacity-100 transition-opacity">
+                  <div className="h-px bg-border mx-4" />
+                  <button
+                    onClick={() => {
+                      const newTask = {
+                        id: `task-${Date.now()}`,
+                        status: '○',
+                        content: 'New step',
+                        order: index + 1,
+                        isEditable: true
+                      }
+                      const updatedTasks = [...localTasks]
+                      updatedTasks.splice(index + 1, 0, newTask)
+                      updatedTasks.forEach((t, i) => t.order = i)
+                      setLocalTasks(updatedTasks)
+                      onTasksChange?.(updatedTasks)
+                      setTimeout(() => startEdit(newTask), 50)
+                    }}
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border border-border rounded-full p-1 hover:bg-muted transition-all text-muted-foreground hover:text-foreground"
+                    title="Add step below"
+                  >
+                    <Plus className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
-          
 
+          {hasMoreTasks && (
+            <div className="text-xs text-muted-foreground text-center py-2">
+              ... and {displayTasks.length - MAX_VISIBLE_TASKS} more steps
+            </div>
+          )}
+
+          {/* Add first step when no steps exist */}
+          {isEditable && visibleTasks.length === 0 && (
+            <div className="group/empty relative py-2">
+              <div className="h-px bg-border mx-4" />
+              <button
+                onClick={addTask}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border border-border rounded-full p-1 hover:bg-muted transition-all text-muted-foreground hover:text-foreground"
+                title="Add first step"
+              >
+                <Plus className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      {isEditable && (
+        <div className="flex gap-2 pt-2">
+          <button
+            onClick={() => onExecute?.(localTasks)}
+            className="px-3 py-1 bg-brand text-white text-xs rounded hover:bg-brand/90 transition-colors"
+          >
+            Run Agent
+          </button>
+          <button
+            onClick={onCancel}
+            className="px-3 py-1 bg-muted text-muted-foreground text-xs rounded hover:bg-muted/80 transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       )}
 
     </div>
   )
-} 
+}

@@ -391,8 +391,8 @@ export class BrowserAgent {
     while (outer_loop_index < BrowserAgent.MAX_STEPS_OUTER_LOOP) {
       this.checkIfAborted();
 
-      // 1. PLAN: Create a new plan
-      const plan = await this._createMultiStepPlan(task);
+      // 1. PLAN: Create a new plan and show for editing
+      const plan = await this._createMultiStepPlanWithPreview(task);
 
       // 2. Convert plan to TODOs
       await this._updateTodosFromPlan(plan);
@@ -666,6 +666,64 @@ export class BrowserAgent {
     }
     
     throw new Error('Invalid plan format - no steps returned');
+  }
+
+  private async _createMultiStepPlanWithPreview(task: string): Promise<Plan> {
+    const initialPlan = await this._createMultiStepPlan(task)
+    
+    const planId = `plan_${Date.now()}`
+    const editablePlan = {
+      planId,
+      steps: initialPlan.steps.map((step, index) => ({
+        id: `step_${index}_${Date.now()}`,
+        action: step.action,
+        reasoning: step.reasoning || '',
+        order: index,
+        isEditable: true
+      })),
+      task,
+      isPreview: true
+    }
+    
+    this.pubsub.publishMessage(PubSub.createMessage(
+      JSON.stringify(editablePlan), 
+      'plan_editor'
+    ))
+    
+    const finalPlan = await this._waitForPlanConfirmation(planId)
+    
+    if (finalPlan === 'cancelled') {
+      throw new AbortError('Plan editing was cancelled by user')
+    }
+    
+    return finalPlan
+  }
+
+  private async _waitForPlanConfirmation(planId: string): Promise<Plan | 'cancelled'> {
+    return new Promise((resolve) => {
+      const subscription = this.pubsub.subscribe((event) => {
+        if (event.type === 'plan-edit-response' && event.payload.planId === planId) {
+          subscription.unsubscribe()
+          
+          if (event.payload.action === 'execute' && event.payload.steps) {
+            const editedPlan: Plan = {
+              steps: event.payload.steps.map((step) => ({
+                action: step.action,
+                reasoning: step.reasoning || ''
+              }))
+            }
+            resolve(editedPlan)
+          } else {
+            resolve('cancelled')
+          }
+        }
+      })
+      
+      setTimeout(() => {
+        subscription.unsubscribe()
+        resolve('cancelled')
+      }, 5 * 60 * 1000)
+    });
   }
 
   private async _validateTaskCompletion(task: string): Promise<{
