@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { cn } from '@/sidepanel/lib/utils'
-import { ChevronDown, ChevronUp, Edit2, Check, X, Plus, Trash2, GripVertical } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
 import { z } from 'zod'
-import { useChatStore } from '@/sidepanel/stores/chatStore'
 
+// Task schema for runtime validation
 const TaskSchema = z.object({
-  id: z.string(),
-  status: z.string(),
-  content: z.string(),
-  order: z.number().optional(),
-  isEditable: z.boolean().default(true)
+  id: z.string(),  // Unique identifier for each task
+  status: z.string(),  // Task completion status
+  content: z.string(),  // Task description
+  order: z.number().optional(),  // Order for drag & drop
+  isEditable: z.boolean().default(true)  // Whether task can be edited
 })
 
 type Task = z.infer<typeof TaskSchema>
@@ -38,6 +38,7 @@ export function TaskManagerDropdown({ content, className, isEditable = false, on
     }
   }, [editingTaskId])
 
+  // Parse markdown content into task objects
   const tasks = useMemo(() => {
     const lines = content.split('\n')
     
@@ -99,8 +100,9 @@ export function TaskManagerDropdown({ content, className, isEditable = false, on
     setEditText('')
   }, [])
 
+  // Add new task at the end of the list
   const addTask = useCallback(() => {
-    const newTask: Task = {
+    const newTask = {
       id: `task-${Date.now()}`,
       status: '○',
       content: 'New step',
@@ -110,6 +112,8 @@ export function TaskManagerDropdown({ content, className, isEditable = false, on
     const updatedTasks = [...localTasks, newTask]
     setLocalTasks(updatedTasks)
     onTasksChange?.(updatedTasks)
+    
+    // Start editing immediately for better UX
     setTimeout(() => startEdit(newTask), 50)
   }, [localTasks, onTasksChange, startEdit])
 
@@ -130,6 +134,7 @@ export function TaskManagerDropdown({ content, className, isEditable = false, on
     }
   }, [saveEdit, cancelEdit])
 
+  // Handle drag start for reordering tasks
   const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
     setDraggedTaskId(taskId)
     e.dataTransfer.effectAllowed = 'move'

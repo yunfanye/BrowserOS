@@ -1,10 +1,9 @@
 import { create } from 'zustand'
 import { z } from 'zod'
-import { PubSub } from '@/lib/pubsub'
 import { MessageType } from '@/lib/types/messaging'
 import { PortMessaging } from '@/lib/runtime/PortMessaging'
 
-// Message schema - simplified for direct PubSub mapping
+// Message schema for chat store with Zod validation
 export const MessageSchema = z.object({
   msgId: z.string(),  // Primary ID for both React keys and PubSub correlation
   role: z.enum(['user', 'thinking', 'assistant', 'error', 'narration', 'plan_editor']), 
@@ -26,7 +25,7 @@ const ChatStateSchema = z.object({
 
 type ChatState = z.infer<typeof ChatStateSchema>
 
-// PubSub message type for upsert
+// External message format for upsert operations
 export interface PubSubMessage {
   msgId: string
   content: string
@@ -102,6 +101,7 @@ export const useChatStore = create<ChatState & ChatActions>((set) => ({
   
   setError: (error) => set({ error }),
   
+  // Send plan edit response to background script
   publishPlanEditResponse: (response) => {
     const messaging = PortMessaging.getInstance()
     const success = messaging.sendMessage(MessageType.PLAN_EDIT_RESPONSE, response)

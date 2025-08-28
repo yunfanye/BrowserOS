@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * Message types for extension communication
+ * Message types for extension communication between background, content, and sidepanel
  */
 export enum MessageType {
   NAVIGATE = 'NAVIGATE',

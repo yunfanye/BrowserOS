@@ -16,7 +16,7 @@ interface MessageItemProps {
   applyIndentMargin?: boolean  // Control whether to apply left margin for indent
 }
 
-// Helper function to detect and parse JSON content
+// Helper function to detect and parse JSON content from message
 const parseJsonContent = (content: string) => {
   try {
     let trimmedContent = content.trim()
@@ -41,7 +41,7 @@ const parseJsonContent = (content: string) => {
   }
 }
 
-// Helper function to check if JSON contains tab data (with windowId)
+// Helper function to check if JSON contains browser tab data
 const isTabData = (data: any): data is Array<{id: number, url: string, title: string, windowId: number}> => {
   return Array.isArray(data) && 
          data.length > 0 && 
@@ -359,7 +359,7 @@ export const MessageItem = memo<MessageItemProps>(function MessageItem({ message
   // Special cases we still need to detect
   const isTodoTable = message.content.includes('| # | Status | Task |')
 
-  // Simplified message styling based on role
+  // Dynamic message styling based on role and content type
   const messageStyling = useMemo(() => {
     // User message styling
     if (isUser) {
@@ -386,7 +386,7 @@ export const MessageItem = memo<MessageItemProps>(function MessageItem({ message
   // Simplified: determine if we should show a bubble
   const shouldShowBubble = isUser || isTodoTable
   
-  // Simplified role-based content rendering
+  // Render content based on message role and special data types
   const renderContent = useCallback(() => {
     // Special case: TODO table
     if (isTodoTable) {
