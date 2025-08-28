@@ -32,7 +32,7 @@ signing:
 
 # Notification settings
 notifications:
-  slack: false # Enable Slack notifications for release builds
+  slack: true
 
 # Build options
 build_options:

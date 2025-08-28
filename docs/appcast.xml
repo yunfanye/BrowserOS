@@ -9,6 +9,21 @@
 
     <!-- Updates -->
     <item>
+      <title>BrowserOS - 0.23.0</title>
+      <description sparkle:format="plain-text">
+      </description>
+      <sparkle:version>7203.69</sparkle:version>
+      <sparkle:shortVersionString>0.23.0</sparkle:shortVersionString>
+      <pubDate>Thu, 28 Aug 2025 11:30:00 -0700</pubDate>
+      <link>https://nxtscape.ai</link>
+      <enclosure
+        url="http://cdn.browseros.com/dmg/BrowserOS_v0.23.0_arm64.dmg"
+        sparkle:edSignature="nTRuAhKdMxEGwuZp9862eYjnnweHbkllFpyeC737Pvr0m/jJoUe3m9hcZIzJqLkMIK3AJrT7phBQI9vDslaXCA==" 
+        length="126212651"
+        type="application/octet-stream" />
+      <sparkle:minimumSystemVersion>10.15</sparkle:minimumSystemVersion>
+    </item>
+    <item>
       <title>BrowserOS - 0.22.0</title>
       <description sparkle:format="plain-text">
       </description>
