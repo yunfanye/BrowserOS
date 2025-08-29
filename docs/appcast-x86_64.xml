@@ -8,21 +8,21 @@
     <language>en</language>
 
     <!-- Updates -->
-    <!-- <item> -->
-    <!--   <title>BrowserOS - 0.23.0</title> -->
-    <!--   <description sparkle:format="plain-text"> -->
-    <!--   </description> -->
-    <!--   <sparkle:version>7203.69</sparkle:version> -->
-    <!--   <sparkle:shortVersionString>0.23.0</sparkle:shortVersionString> -->
-    <!--   <pubDate>Thu, 28 Aug 2025 11:30:00 -0700</pubDate> -->
-    <!--   <link>https://nxtscape.ai</link> -->
-    <!--   <enclosure -->
-    <!--     url="http://cdn.browseros.com/dmg/BrowserOS_v0.23.0_x64.dmg" -->
-    <!--     sparkle:edSignature="ww7LR+uE2NdMZgDuJOT6glM6IehtVe3DSojSnDYkeTfMREtVHu8rm7H9cLJEyMj3QNjzjK27v7vyjG0OqzDxBg=="  -->
-    <!--     length="135459506" -->
-    <!--     type="application/octet-stream" /> -->
-    <!--   <sparkle:minimumSystemVersion>10.15</sparkle:minimumSystemVersion> -->
-    <!-- </item> -->
+    <item>
+      <title>BrowserOS - 0.23.1</title>
+      <description sparkle:format="plain-text">
+      </description>
+      <sparkle:version>7204.69</sparkle:version>
+      <sparkle:shortVersionString>0.23.1</sparkle:shortVersionString>
+      <pubDate>Thu, 29 Aug 2025 11:30:00 -0700</pubDate>
+      <link>https://nxtscape.ai</link>
+      <enclosure
+        url="http://cdn.browseros.com/dmg/BrowserOS_v0.23.1_x64.dmg"
+        sparkle:edSignature="NRRyYWHTk/JgrDXLAhzc/RYhqUfRND5M9IKUTsG3l7VWStr+W+4YWv/VyuQdxZoEOTHPZ5GHZ0B0j2FQevSpBw=="
+        length="135442628"
+        type="application/octet-stream" />
+      <sparkle:minimumSystemVersion>10.15</sparkle:minimumSystemVersion>
+    </item>
     <item>
       <title>BrowserOS - 0.22.0</title>
       <description sparkle:format="plain-text">
