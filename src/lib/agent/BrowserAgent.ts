@@ -594,7 +594,7 @@ export class BrowserAgent {
     let screenshot = '';
     
     try {
-      const screenshotResult = await screenshotTool.func({});
+      const screenshotResult = await screenshotTool.func({ size: 'medium' });
       const parsedScreenshot = jsonParseToolOutput(screenshotResult);
       if (parsedScreenshot.ok) {
         screenshot = parsedScreenshot.output?.screenshot || '';  // Base64 encoded
