@@ -154,7 +154,7 @@ export class BrowserAgent {
    * Use this for manual abort checks inside loops.
    */
   private checkIfAborted(): void {
-    if (this.executionContext.abortController.signal.aborted) {
+    if (this.executionContext.abortSignal.aborted) {
       throw new AbortError();
     }
   }
@@ -549,7 +549,7 @@ export class BrowserAgent {
 
     const llmWithTools = llm.bindTools(this.toolManager.getAll());
     const stream = await llmWithTools.stream(message_history, {
-      signal: this.executionContext.abortController.signal
+      signal: this.executionContext.abortSignal
     });
     
     let accumulatedChunk: AIMessageChunk | undefined;
@@ -779,13 +779,22 @@ export class BrowserAgent {
    */
   private _handleExecutionError(error: unknown, task: string): void {
     // Check if this is a user cancellation - handle silently
+    const isAbortError = error instanceof Error && error.name === 'AbortError';
+    const abortReason = this.executionContext.abortSignal.reason as any;
+    const isUserInitiated = abortReason?.userInitiated === true;
+    
     const isUserCancellation = error instanceof AbortError || 
                                this.executionContext.isUserCancellation() || 
-                               (error instanceof Error && error.name === "AbortError");
+                               (isAbortError && isUserInitiated);
     
     if (isUserCancellation) {
-      // Don't publish message here - already handled in _subscribeToExecutionStatus
-      // when the cancelled status event is received
+      // User-initiated cancellation - don't rethrow, let execution end gracefully
+      Logging.log('BrowserAgent', 'Execution cancelled by user');
+      return;  // Don't rethrow
+    } else if (isAbortError) {
+      // System abort (not user-initiated) - still throw
+      Logging.log('BrowserAgent', 'Execution aborted by system');
+      throw error;
     } else {
       // Log error metric with details
       const errorMessage = error instanceof Error ? error.message : String(error);
