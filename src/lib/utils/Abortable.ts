@@ -48,15 +48,15 @@ export function Abortable(
 
   descriptor.value = async function (this: any, ...args: any[]): Promise<any> {
     // Check if the class has executionContext
-    if (!this.executionContext?.abortSignal) {
+    if (!this.executionContext?.abortController?.signal) {
       throw new Error(
-        `@Abortable requires the class to have an executionContext with abortSignal. ` +
+        `@Abortable requires the class to have an executionContext with abortController. ` +
         `Make sure ${this.constructor.name} has this property.`
       );
     }
 
     // Check if already aborted before executing
-    if (this.executionContext.abortSignal.aborted) {
+    if (this.executionContext.abortController.signal.aborted) {
       throw new AbortError();
     }
 
@@ -71,7 +71,7 @@ export function Abortable(
       }
       
       // For other errors, check if we were aborted during execution
-      if (this.executionContext.abortSignal.aborted) {
+      if (this.executionContext.abortController.signal.aborted) {
         throw new AbortError();
       }
       

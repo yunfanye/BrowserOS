@@ -178,7 +178,7 @@ export function createValidatorTool(executionContext: ExecutionContext): Dynamic
             structuredLLM,
             messages,
             3,
-            { signal: executionContext.abortSignal }
+            { signal: executionContext.abortController.signal }
           )
           
           validationData = {
@@ -196,7 +196,7 @@ export function createValidatorTool(executionContext: ExecutionContext): Dynamic
             messageHistory,
             screenshot,
             maxTokens,
-            executionContext.abortSignal,
+            executionContext.abortController.signal,
             executionContext
           )
         }

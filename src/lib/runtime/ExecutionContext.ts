@@ -15,7 +15,6 @@ export const ExecutionContextOptionsSchema = z.object({
   executionId: z.string().optional(),  // Unique execution identifier (NEW)
   browserContext: z.instanceof(BrowserContext),  // Browser context for page operations
   messageManager: z.instanceof(MessageManager),  // Message manager for communication
-  abortSignal: z.instanceof(AbortSignal).optional(),  // Abort signal for cancellation
   debugMode: z.boolean().default(false),  // Whether to enable debug logging
   todoStore: z.instanceof(TodoStore).optional(),  // TODO store for complex task management
   pubsub: z.any().optional()  // Scoped PubSub channel (NEW - will be PubSubChannel)
@@ -28,7 +27,7 @@ export type ExecutionContextOptions = z.infer<typeof ExecutionContextOptionsSche
  */
 export class ExecutionContext {
   readonly executionId: string  // Unique execution identifier (NEW)
-  abortSignal: AbortSignal  // Abort signal for task cancellation
+  abortController: AbortController  // Abort controller for task cancellation
   browserContext: BrowserContext  // Browser context for page operations
   messageManager: MessageManager  // Message manager for communication
   debugMode: boolean  // Whether debug logging is enabled
@@ -50,8 +49,8 @@ export class ExecutionContext {
     // Store execution ID (default to 'default' for backwards compatibility)
     this.executionId = validatedOptions.executionId || 'default'
     
-    // Use provided abort signal or create a default one (for backwards compat)
-    this.abortSignal = validatedOptions.abortSignal || new AbortController().signal
+    // Create our own AbortController - single source of truth
+    this.abortController = new AbortController()
     this.browserContext = validatedOptions.browserContext
     this.messageManager = validatedOptions.messageManager
     this.debugMode = validatedOptions.debugMode || false
@@ -102,24 +101,22 @@ export class ExecutionContext {
    */
   public cancelExecution(isUserInitiated: boolean = false): void {
     this.userInitiatedCancel = isUserInitiated;
-    // Note: The abort signal is now controlled externally by Execution class
-    // This method now just tracks the user-initiated flag
+    this.abortController.abort();
   }
 
   /**
    * Check if the current cancellation was user-initiated
    */
   public isUserCancellation(): boolean {
-    return this.userInitiatedCancel && this.abortSignal.aborted;
+    return this.userInitiatedCancel && this.abortController.signal.aborted;
   }
 
   /**
    * Reset abort controller for new task execution
-   * @deprecated No longer needed - abort signal is provided fresh per run
    */
   public resetAbortController(): void {
     this.userInitiatedCancel = false;
-    // Abort signal is now provided fresh by Execution class per run
+    this.abortController = new AbortController();
   }
 
   /**
@@ -246,7 +243,7 @@ export class ExecutionContext {
    * @returns True if abort signal is set
    */
   public shouldAbort(): boolean {
-    return this.abortSignal.aborted
+    return this.abortController.signal.aborted
   }
 }
  

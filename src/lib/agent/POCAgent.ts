@@ -140,7 +140,7 @@ export class POCAgent {
    * Use this for manual abort checks inside loops.
    */
   private checkIfAborted(): void {
-    if (this.executionContext.abortSignal.aborted) {
+    if (this.executionContext.abortController.signal.aborted) {
       throw new AbortError();
     }
   }
@@ -517,7 +517,7 @@ Use the ${thought.toolName} tool to accomplish this.`;
 
     const llmWithTools = llm.bindTools(this.toolManager.getAll());
     const stream = await llmWithTools.stream(message_history, {
-      signal: this.executionContext.abortSignal
+      signal: this.executionContext.abortController.signal
     });
     
     let accumulatedChunk: AIMessageChunk | undefined;

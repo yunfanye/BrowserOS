@@ -55,11 +55,14 @@ export class ExecutionHandler {
           debug: false
         })
       } else {
-        // If execution exists and is running, cancel it
-        // No need to wait - the new run() will handle it
+        // If execution exists, check its state
         if (execution.isRunning()) {
+          // Cancel previous task if running
           Logging.log('ExecutionHandler', `Cancelling previous task for execution ${execId}`)
           execution.cancel()
+          
+          // Wait a bit for cancellation
+          await new Promise(resolve => setTimeout(resolve, 100))
         }
       }
       

@@ -103,7 +103,7 @@ export class FindElementTool {
       structuredLLM,
       messages,
       3,
-      { signal: this.executionContext.abortSignal }
+      { signal: this.executionContext.abortController.signal }
     )
 
     return result

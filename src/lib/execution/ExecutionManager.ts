@@ -1,6 +1,15 @@
-import { Execution, ExecutionOptions } from './Execution'
+import { Execution, ExecutionOptions, ExecutionState } from './Execution'
 import { PubSub } from '@/lib/pubsub'
 import { Logging } from '@/lib/utils/Logging'
+
+// Default execution ID for backwards compatibility
+const DEFAULT_EXECUTION_ID = 'default'
+
+// Maximum concurrent executions allowed
+const MAX_CONCURRENT_EXECUTIONS = 10
+
+// Execution cleanup timeout (5 minutes)
+const EXECUTION_CLEANUP_TIMEOUT = 5 * 60 * 1000
 
 /**
  * Manages all active execution instances.
@@ -8,6 +17,7 @@ import { Logging } from '@/lib/utils/Logging'
  */
 export class ExecutionManager {
   private executions: Map<string, Execution> = new Map()
+  private cleanupTimers: Map<string, NodeJS.Timeout> = new Map()
   private static instance: ExecutionManager | null = null
 
   constructor() {
@@ -37,6 +47,16 @@ export class ExecutionManager {
       throw new Error(`Execution ${executionId} already exists`)
     }
 
+    // Check maximum concurrent executions
+    if (this.executions.size >= MAX_CONCURRENT_EXECUTIONS) {
+      // Try to clean up completed executions first
+      this._cleanupCompletedExecutions()
+      
+      if (this.executions.size >= MAX_CONCURRENT_EXECUTIONS) {
+        throw new Error(`Maximum concurrent executions (${MAX_CONCURRENT_EXECUTIONS}) reached`)
+      }
+    }
+
     // Get or create PubSub channel for this execution
     const pubsub = PubSub.getChannel(executionId)
 
@@ -48,6 +68,9 @@ export class ExecutionManager {
 
     const execution = new Execution(fullOptions, pubsub)
     this.executions.set(executionId, execution)
+
+    // Clear any existing cleanup timer
+    this._clearCleanupTimer(executionId)
 
     Logging.log('ExecutionManager', `Created execution ${executionId} (total: ${this.executions.size})`)
     
@@ -64,10 +87,32 @@ export class ExecutionManager {
   }
 
   /**
+   * Get or create an execution instance
+   * Useful for backwards compatibility with singleton pattern
+   * @param executionId - Execution identifier
+   * @param options - Options for creation if doesn't exist
+   * @returns The execution instance
+   */
+  getOrCreate(executionId: string, options?: Omit<ExecutionOptions, 'executionId'>): Execution {
+    let execution = this.get(executionId)
+    
+    if (!execution && options) {
+      execution = this.create(executionId, options)
+    }
+    
+    if (!execution) {
+      throw new Error(`Execution ${executionId} not found and no options provided to create`)
+    }
+    
+    return execution
+  }
+
+  /**
    * Delete an execution instance
    * @param executionId - Execution identifier to delete
+   * @param immediate - If true, dispose immediately without cleanup timer
    */
-  async delete(executionId: string): Promise<void> {
+  async delete(executionId: string, immediate: boolean = false): Promise<void> {
     const execution = this.executions.get(executionId)
     
     if (!execution) {
@@ -75,7 +120,13 @@ export class ExecutionManager {
       return
     }
 
-    await this._disposeExecution(executionId)
+    if (immediate) {
+      // Immediate disposal
+      await this._disposeExecution(executionId)
+    } else {
+      // Schedule cleanup after timeout (allows for reconnection)
+      this._scheduleCleanup(executionId)
+    }
   }
 
   /**
@@ -92,16 +143,25 @@ export class ExecutionManager {
   getStats(): {
     total: number
     running: number
+    completed: number
+    failed: number
   } {
     let running = 0
+    let completed = 0
+    let failed = 0
 
     for (const execution of this.executions.values()) {
-      if (execution.isRunning()) running++
+      const state = execution.getState()
+      if (state === ExecutionState.RUNNING) running++
+      else if (state === ExecutionState.COMPLETED) completed++
+      else if (state === ExecutionState.FAILED) failed++
     }
 
     return {
       total: this.executions.size,
-      running
+      running,
+      completed,
+      failed
     }
   }
 
@@ -151,6 +211,12 @@ export class ExecutionManager {
    * Dispose all executions and cleanup
    */
   async disposeAll(): Promise<void> {
+    // Cancel all cleanup timers
+    for (const timer of this.cleanupTimers.values()) {
+      clearTimeout(timer)
+    }
+    this.cleanupTimers.clear()
+
     // Dispose all executions
     const disposalPromises = []
     for (const executionId of this.executions.keys()) {
@@ -162,6 +228,16 @@ export class ExecutionManager {
     Logging.log('ExecutionManager', 'Disposed all executions')
   }
 
+  /**
+   * Get default execution for backwards compatibility
+   * Creates a default execution if it doesn't exist
+   */
+  getDefault(mode: 'chat' | 'browse' = 'browse'): Execution {
+    return this.getOrCreate(DEFAULT_EXECUTION_ID, {
+      mode,
+      debug: false
+    })
+  }
 
   /**
    * Dispose an execution and clean up its resources
@@ -183,8 +259,67 @@ export class ExecutionManager {
     // Delete PubSub channel
     PubSub.deleteChannel(executionId)
 
+    // Clear cleanup timer
+    this._clearCleanupTimer(executionId)
+
     Logging.log('ExecutionManager', `Disposed execution ${executionId} (remaining: ${this.executions.size})`)
   }
 
+  /**
+   * Schedule cleanup of an execution after timeout
+   * @private
+   */
+  private _scheduleCleanup(executionId: string): void {
+    // Clear any existing timer
+    this._clearCleanupTimer(executionId)
 
+    // Schedule new cleanup
+    const timer = setTimeout(async () => {
+      Logging.log('ExecutionManager', `Auto-cleanup triggered for execution ${executionId}`)
+      await this._disposeExecution(executionId)
+    }, EXECUTION_CLEANUP_TIMEOUT)
+
+    this.cleanupTimers.set(executionId, timer)
+    
+    Logging.log('ExecutionManager', `Scheduled cleanup for execution ${executionId} in ${EXECUTION_CLEANUP_TIMEOUT}ms`)
+  }
+
+  /**
+   * Clear cleanup timer for an execution
+   * @private
+   */
+  private _clearCleanupTimer(executionId: string): void {
+    const timer = this.cleanupTimers.get(executionId)
+    if (timer) {
+      clearTimeout(timer)
+      this.cleanupTimers.delete(executionId)
+    }
+  }
+
+  /**
+   * Clean up completed executions to free resources
+   * @private
+   */
+  private _cleanupCompletedExecutions(): void {
+    const toCleanup: string[] = []
+
+    for (const [id, execution] of this.executions) {
+      const state = execution.getState()
+      if (state === ExecutionState.COMPLETED || 
+          state === ExecutionState.FAILED || 
+          state === ExecutionState.DISPOSED) {
+        toCleanup.push(id)
+      }
+    }
+
+    for (const id of toCleanup) {
+      this._disposeExecution(id).catch(error => {
+        Logging.log('ExecutionManager', `Error cleaning up execution ${id}: ${error}`, 'error')
+      })
+    }
+
+    if (toCleanup.length > 0) {
+      Logging.log('ExecutionManager', `Cleaned up ${toCleanup.length} completed executions`)
+    }
+  }
 }
