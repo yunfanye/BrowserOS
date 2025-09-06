@@ -1,4 +1,4 @@
-import { MessageType, LogMessage, ExecuteQueryMessage, AgentStreamUpdateMessage, CancelTaskMessage, ResetConversationMessage, GetTabsMessage } from '@/lib/types/messaging'
+import { MessageType, LogMessage, ExecuteQueryMessage, CancelTaskMessage, ResetConversationMessage, GetTabsMessage } from '@/lib/types/messaging'
 import { LLMSettingsReader } from '@/lib/llm/settings/LLMSettingsReader'
 import { langChainProvider } from '@/lib/llm/LangChainProvider'
 import { BrowserOSProvidersConfigSchema, BROWSEROS_PREFERENCE_KEYS } from '@/lib/llm/settings/browserOSTypes'
@@ -49,15 +49,15 @@ function debugLog(message: string, level: 'info' | 'error' | 'warning' = 'info')
   Logging.log('Background', message, level)
 }
 
-// Active tabs map (tabId -> information)
-const activeTabs = new Map<number, { url: string }>()
+// Active tabs map (tabId -> information) - currently unused but preserved for future use
+// const activeTabs = new Map<number, { url: string }>()
 
-// Navigation history tracking (tabId -> array of navigation entries)
-const tabHistory = new Map<number, Array<{
-  url: string
-  title: string
-  timestamp: number
-}>>()
+// Navigation history tracking (tabId -> array of navigation entries) - currently unused but preserved for future use
+// const tabHistory = new Map<number, Array<{
+//   url: string
+//   title: string
+//   timestamp: number
+// }>>()
 
 // Connected ports (name -> port)  
 const connectedPorts = new Map<string, chrome.runtime.Port>();
@@ -130,7 +130,7 @@ function initialize(): void {
         const raw = typeof change.newValue === 'string' ? JSON.parse(change.newValue) : change.newValue
         const config = BrowserOSProvidersConfigSchema.parse(raw)
         lastProvidersConfigJson = JSON.stringify(config)
-        try { langChainProvider.clearCache() } catch (_) {}
+        try { langChainProvider.clearCache() } catch (_) { /* Ignore error */ }
         broadcastProvidersConfig(config)
       } catch (_e) {
         // Ignore parse/validation errors
@@ -396,6 +396,8 @@ function handlePortMessage(message: PortMessage, port: chrome.runtime.Port): voi
 
       case MessageType.REFINE_PLAN:
         handleRefinePlanPort(payload as { currentPlan: { goal?: string; steps: string[] }; feedback: string; maxSteps?: number }, port, id)
+        break
+
         
       default:
         // Unknown port message type
@@ -419,27 +421,14 @@ function handlePortMessage(message: PortMessage, port: chrome.runtime.Port): voi
 
 /**
  * Handles log messages
- * @param payload - Log message payload
+ * @param _payload - Log message payload
  */
-function handleLogMessage(payload: LogMessage['payload']): void {
-  const { source, message, level = 'info' } = payload;
-  // Forward log message from other components
+function handleLogMessage(_payload: LogMessage['payload']): void {
+  // const { source, message, level = 'info' } = _payload;
+  // Forward log message from other components - currently no-op
 }
 
-/**
- * Helper function to determine status from action string
- */
-function getStatusFromAction(action: string): 'thinking' | 'executing' | 'completed' | 'error' {
-  if (action.includes('Error') || action.includes('Failed')) {
-    return 'error'
-  } else if (action.includes('Thinking') || action.includes('Processing')) {
-    return 'thinking'
-  } else if (action.includes('Executing')) {
-    return 'executing'
-  } else {
-    return 'executing'
-  }
-}
+// Helper function removed - was only used by old experiment functionality
 
 
 /**
@@ -528,14 +517,14 @@ function handleHeartbeatMessage(payload: { timestamp: number }, port: chrome.run
 
 /**
  * Handles conversation reset requests via port messaging
- * @param payload - Reset conversation payload
- * @param port - Port to send response through
- * @param id - Optional message ID for correlation
+ * @param _payload - Reset conversation payload
+ * @param _port - Port to send response through
+ * @param _id - Optional message ID for correlation
  */
 function handleResetConversationPort(
-  payload: ResetConversationMessage['payload'],
-  port: chrome.runtime.Port,
-  id?: string
+  _payload: ResetConversationMessage['payload'],
+  _port: chrome.runtime.Port,
+  _id?: string
 ): void {
   try {
     nxtScape.reset()
@@ -656,7 +645,7 @@ function handleSaveLlmProvidersPort(
         undefined,
         (success?: boolean) => {
           if (success) {
-            try { langChainProvider.clearCache() } catch (_) {}
+            try { langChainProvider.clearCache() } catch (_) { /* Ignore error */ }
             lastProvidersConfigJson = JSON.stringify(config)
             broadcastProvidersConfig(config)
           }
@@ -672,7 +661,7 @@ function handleSaveLlmProvidersPort(
       try {
         const key = BROWSEROS_PREFERENCE_KEYS.PROVIDERS
         chrome.storage?.local?.set({ [key]: JSON.stringify(config) }, () => {
-          try { langChainProvider.clearCache() } catch (_) {}
+          try { langChainProvider.clearCache() } catch (_) { /* Ignore error */ }
           lastProvidersConfigJson = JSON.stringify(config)
           broadcastProvidersConfig(config)
           port.postMessage({
@@ -714,6 +703,8 @@ function handleCancelTaskPort(
   try {
     nxtScape.cancel()
     Logging.logMetric('task_cancelled')
+
+    
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     debugLog(`Error handling task cancellation: ${errorMessage}`, 'error')

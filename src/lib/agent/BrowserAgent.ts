@@ -45,6 +45,7 @@ import { ExecutionContext } from '@/lib/runtime/ExecutionContext';
 import { MessageManager } from '@/lib/runtime/MessageManager';
 import { ToolManager } from '@/lib/tools/ToolManager';
 import { ExecutionMetadata } from '@/lib/types/messaging';
+import { DynamicStructuredTool } from '@langchain/core/tools';
 import { createPlannerTool } from '@/lib/tools/planning/PlannerTool';
 import { createTodoManagerTool } from '@/lib/tools/planning/TodoManagerTool';
 import { createRequirePlanningTool } from '@/lib/tools/planning/RequirePlanningTool';
@@ -71,6 +72,9 @@ import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
 import { PLANNING_CONFIG } from '@/lib/tools/planning/PlannerTool.config';
 import { AbortError } from '@/lib/utils/Abortable';
 import { GlowAnimationService } from '@/lib/services/GlowAnimationService';
+// Import evals2 lightweight tool wrapper
+import { wrapToolForMetrics } from '@/evals2/EvalToolWrapper';
+import { ENABLE_EVALS2 } from '@/config';
 import { NarratorService } from '@/lib/services/NarratorService';
 import { PubSub } from '@/lib/pubsub'; // For static helper methods
 import { HumanInputResponse } from '@/lib/pubsub/types';
@@ -128,6 +132,7 @@ export class BrowserAgent {
   private readonly executionContext: ExecutionContext;
   private readonly toolManager: ToolManager;
   private readonly glowService: GlowAnimationService;
+  private toolsRegistered = false;  // Track if tools have been registered
   private narrator?: NarratorService;  // Narrator service for human-friendly messages
 
   constructor(executionContext: ExecutionContext) {
@@ -203,6 +208,11 @@ export class BrowserAgent {
       // 3. STANDARD FLOW: CLASSIFY task type
       const classification = await this._classifyTask(task);
       
+      // Log classification result to console for visibility
+      if (ENABLE_EVALS2) {
+        console.log(`%c→ Classification: ${classification.is_simple_task ? 'simple' : 'complex'}`, 'color: #888; font-size: 10px');
+      }
+      
       // Clear message history if this is not a follow-up task
       if (!classification.is_followup_task) {
         this.messageManager.clear();
@@ -228,6 +238,8 @@ export class BrowserAgent {
 
       // 5. FINALISE: Generate final result
       await this._generateTaskResult(task);
+      
+      // Task completion is logged by NxtScape, not here
     } catch (error) {
       this._handleExecutionError(error, task);
     } finally {
@@ -313,11 +325,13 @@ export class BrowserAgent {
     
     try {
       // Tool start notification not needed in new pub-sub system
+      // Tool start notification not needed in new pub-sub system
       const result = await classificationTool.func(args);
       const parsedResult = jsonParseToolOutput(result);
       
       if (parsedResult.ok) {
         const classification = parsedResult.output;
+        // Tool end notification not needed in new pub-sub system
         // Tool end notification not needed in new pub-sub system
         return { 
           is_simple_task: classification.is_simple_task,
@@ -325,6 +339,7 @@ export class BrowserAgent {
         };
       }
     } catch (error) {
+      // Tool end notification not needed in new pub-sub system
       // Tool end notification not needed in new pub-sub system
     }
     
@@ -612,7 +627,14 @@ export class BrowserAgent {
 
       await this._maybeStartGlowAnimation(toolName);
 
-      const toolResult = await tool.func(args);
+      // Add evals2 lightweight wrapping if enabled
+      let toolFunc = tool.func;
+      if (ENABLE_EVALS2) {
+        const wrappedTool = wrapToolForMetrics(tool, this.executionContext, toolCallId);
+        toolFunc = wrappedTool.func;
+      }
+
+      const toolResult = await toolFunc(args);
       const parsedResult = jsonParseToolOutput(toolResult);
       
 
@@ -661,7 +683,6 @@ export class BrowserAgent {
       max_steps: BrowserAgent.MAX_STEPS_FOR_COMPLEX_TASKS
     };
 
-    // Tool start for planner - not needed
     const result = await plannerTool.func(args);
     const parsedResult = jsonParseToolOutput(result);
     

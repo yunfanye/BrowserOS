@@ -422,6 +422,7 @@ export const PlanGenerationUpdateMessageSchema = MessageSchema.extend({
 
 export type PlanGenerationUpdateMessage = z.infer<typeof PlanGenerationUpdateMessageSchema>
 
+
 /**
  * Union of all message types
  */
