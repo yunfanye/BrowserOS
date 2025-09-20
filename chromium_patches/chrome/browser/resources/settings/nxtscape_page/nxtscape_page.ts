@@ -1,6 +1,6 @@
 diff --git a/chrome/browser/resources/settings/nxtscape_page/nxtscape_page.ts b/chrome/browser/resources/settings/nxtscape_page/nxtscape_page.ts
 new file mode 100644
-index 0000000000000..ad44c5f741b5c
+index 0000000000000..80e988de4d595
 --- /dev/null
 +++ b/chrome/browser/resources/settings/nxtscape_page/nxtscape_page.ts
 @@ -0,0 +1,1099 @@
@@ -111,7 +111,7 @@ index 0000000000000..ad44c5f741b5c
 +    modelConfig: { contextWindow: 1048576, temperature: 0.7 }
 +  },
 +  [ProviderType.OLLAMA]: {
-+    baseUrl: 'http://localhost:11434',
++    baseUrl: 'http://127.0.0.1:11434',
 +    modelId: 'gpt-oss:20b',
 +    capabilities: { supportsImages: false },
 +    modelConfig: { contextWindow: 4096, temperature: 0.7 }
@@ -160,7 +160,7 @@ index 0000000000000..ad44c5f741b5c
 +  {
 +    name: 'Ollama',
 +    type: ProviderType.OLLAMA,
-+    baseUrl: 'http://localhost:11434',
++    baseUrl: 'http://127.0.0.1:11434',
 +    modelId: 'gpt-oss:20b',
 +    capabilities: { supportsImages: false },
 +    modelConfig: { contextWindow: 4096, temperature: 0.7 },
@@ -176,7 +176,7 @@ index 0000000000000..ad44c5f741b5c
 +  {
 +    name: 'LM Studio',
 +    type: ProviderType.OPENAI_COMPATIBLE,
-+    baseUrl: 'http://localhost:1234/v1/',
++    baseUrl: 'http://127.0.0.1:1234/v1/',
 +    modelId: 'openai/gpt-oss-20b',
 +    capabilities: { supportsImages: false },
 +    modelConfig: { contextWindow: 131072, temperature: 0.7 },
