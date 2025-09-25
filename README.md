@@ -1,7 +1,6 @@
 <div align="center">
-<img src="https://storage.googleapis.com/felafax-public/browseros_readme/github-banner.png" alt="backed-by-yc" >
+<img src="https://storage.googleapis.com/felafax-public/browseros_readme/github-banner-3.png" alt="backed-by-yc" >
 
-### Your browser, with AI superpowers 🚀
 <br></br>
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-blue)](https://discord.gg/YKwjt5vuKr)
 [![Twitter](https://img.shields.io/twitter/follow/browserOS_ai?style=social)](https://twitter.com/browseros_ai)
