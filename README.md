@@ -38,13 +38,6 @@
 4. Start automating!
 
 ## What makes BrowserOS special
-
-<div align="center">
-<img src="https://cdn.browseros.com/resources/usecase.png" alt="example-use-cases" width="85%">
-</div>
-
-## Features
-
 - 🏠 Feels like home - same familiar interface as Google Chrome, works with all your extensions
 - 🤖 AI agents that run on YOUR browser, not in the cloud
 - 🔒 Privacy first - bring your own keys or use local models with Ollama. Your browsing history stays on your computer
