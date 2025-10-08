@@ -15,9 +15,21 @@ body:
       label: Issue Type
       description: What type of issue are you reporting?
       options:
-        - Agent Issue (AI automation, extension features)
-        - Browser Issue (installation, UI, core browser)
+        - Agent Issue
+        - Browser Issue
         - Both / Not sure
+    validations:
+      required: true
+
+  - id: operating-system
+    type: dropdown
+    attributes:
+      label: Operating System
+      description: What operating system are you running?
+      options:
+        - macOS
+        - Windows
+        - Linux
     validations:
       required: true
 
@@ -26,7 +38,6 @@ body:
     attributes:
       label: Description of the bug
       description: A clear and concise description of what the bug is.
-      placeholder: Describe what went wrong...
     validations:
       required: true
 
@@ -61,43 +72,8 @@ body:
     type: input
     attributes:
       label: BrowserOS Version
-      description: Which version of BrowserOS are you using? (Find it in chrome://settings/help)
+      description: Which version of BrowserOS are you using? (Find it in `chrome://settings/help`)
       placeholder: e.g., 137.0.7212.69
-    validations:
-      required: true
-
-  - id: operating-system
-    type: dropdown
-    attributes:
-      label: Operating System
-      description: What operating system are you running?
-      options:
-        - macOS
-        - Windows
-        - Linux
-    validations:
-      required: true
-
-  - id: ai-provider
-    type: dropdown
-    attributes:
-      label: AI Provider (Agent Issues Only)
-      description: Which AI provider are you using? Leave blank if not applicable
-      options:
-        - Not applicable
-        - OpenAI
-        - Anthropic (Claude)
-        - Google (Gemini)
-        - Ollama
-        - LMStudio
-        - Other (specify below)
-
-  - id: ai-model
-    type: input
-    attributes:
-      label: AI Model / Custom Provider (Agent Issues Only)
-      description: If you selected "Other" above, or want to specify the exact model name
-      placeholder: e.g., gpt-4, claude-3-sonnet, llama3, custom-model
 
   - id: additional-context
     type: textarea

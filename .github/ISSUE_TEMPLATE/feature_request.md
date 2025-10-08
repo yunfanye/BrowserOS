@@ -10,28 +10,14 @@ Thanks for sharing your idea! We love hearing how we can make BrowserOS better. 
 
 ---
 
-**Feature Area**
-<!-- Select one: Agent (AI automation), Browser (core browser features), or Both -->
-- [ ] Agent (AI automation, extension features)
-- [ ] Browser (installation, UI, core browser)
-- [ ] Both
+**What problem does this solve?**
+Describe the problem or frustration you're experiencing.
 
-**Problem Statement**
-<!-- What problem does this feature solve? What user need does it address? -->
-A clear and concise description of the problem. Ex. "I'm always frustrated when..."
+**How are you working around this today?**
+What's your current solution or workaround, if any?
 
-**Proposed Solution**
-<!-- What should BrowserOS do? Be as specific as possible. -->
-A clear and concise description of what you want to happen.
+**What's your proposed solution?**
+How should BrowserOS address this?
 
-**Alternatives Considered**
-<!-- Have you thought of other ways to solve this problem? -->
-A description of any alternative solutions or features you've considered.
-
-**Use Cases**
-<!-- How would you use this feature? What workflows does it enable? -->
-Describe specific scenarios where this feature would be helpful.
-
-**Additional Context**
-<!-- Mockups, examples from other tools, technical details, etc. -->
-Add any other context, screenshots, or examples about the feature request here.
+**Additional context** (optional)
+Add screenshots, examples, or any other helpful details.
