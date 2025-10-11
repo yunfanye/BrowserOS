@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/ui/views/side_panel/third_party_llm/third_party_llm_panel_coordinator.cc b/chrome/browser/ui/views/side_panel/third_party_llm/third_party_llm_panel_coordinator.cc
 new file mode 100644
-index 0000000000000..1bd325ebcc36f
+index 0000000000000..e417ab706cd5c
 --- /dev/null
 +++ b/chrome/browser/ui/views/side_panel/third_party_llm/third_party_llm_panel_coordinator.cc
-@@ -0,0 +1,1142 @@
+@@ -0,0 +1,1165 @@
 +// Copyright 2024 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -135,6 +135,29 @@ index 0000000000000..1bd325ebcc36f
 +std::unique_ptr<views::View>
 +ThirdPartyLlmPanelCoordinator::CreateThirdPartyLlmWebView(
 +    SidePanelEntryScope& scope) {
++  // Save current state before reloading preferences
++  size_t previous_size = providers_.size();
++  if (owned_web_contents_) {
++    GURL current_url = owned_web_contents_->GetURL();
++    if (current_url.is_valid()) {
++      last_urls_[current_provider_index_] = current_url;
++    }
++  }
++
++  // Reload providers from preferences
++  LoadProvidersFromPrefs();
++
++  // If provider list size changed, reset to first provider for safety
++  // This handles providers being added/removed while panel was closed
++  if (providers_.size() != previous_size) {
++    LOG(INFO) << "[browseros] Provider list size changed from " << previous_size
++              << " to " << providers_.size() << ", resetting to first provider";
++    current_provider_index_ = 0;
++    if (PrefService* prefs = GetBrowser().profile()->GetPrefs()) {
++      prefs->SetInteger(kThirdPartyLlmSelectedProviderPref, 0);
++    }
++  }
++
 +  // Cancel any pending timer callbacks before resetting UI pointers
 +  if (feedback_timer_ && feedback_timer_->IsRunning()) {
 +    feedback_timer_->Stop();

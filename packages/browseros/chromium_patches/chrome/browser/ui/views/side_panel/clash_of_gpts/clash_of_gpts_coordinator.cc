@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/ui/views/side_panel/clash_of_gpts/clash_of_gpts_coordinator.cc b/chrome/browser/ui/views/side_panel/clash_of_gpts/clash_of_gpts_coordinator.cc
 new file mode 100644
-index 0000000000000..c009ece12f3fd
+index 0000000000000..b4f8a66530403
 --- /dev/null
 +++ b/chrome/browser/ui/views/side_panel/clash_of_gpts/clash_of_gpts_coordinator.cc
-@@ -0,0 +1,548 @@
+@@ -0,0 +1,563 @@
 +// Copyright 2025 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -341,10 +341,25 @@ index 0000000000000..c009ece12f3fd
 +
 +void ClashOfGptsCoordinator::CreateWindowIfNeeded() {
 +  LOG(INFO) << "CreateWindowIfNeeded called, window_ = " << window_.get();
-+  
++
 +  if (!window_) {
 +    LOG(INFO) << "Creating new window and widget";
-+    
++
++    // Reload providers from preferences (may have been modified externally)
++    size_t previous_size = providers_.size();
++    LoadProvidersFromPrefs();
++
++    // If provider list size changed
++    if (providers_.size() != previous_size) {
++      LOG(INFO) << "[browseros] Provider list size changed from " << previous_size
++                << " to " << providers_.size() << ", validating pane indices";
++      for (int i = 0; i < kMaxPanes; ++i) {
++        if (pane_provider_indices_[i] >= providers_.size()) {
++          pane_provider_indices_[i] = 0;  // Reset invalid indices
++        }
++      }
++    }
++
 +    // Following Chromium style guide: CLIENT_OWNS_WIDGET pattern
 +    // Client (coordinator) owns both widget and delegate separately
 +    window_ = std::make_unique<ClashOfGptsWindow>(&GetBrowser(), this);
