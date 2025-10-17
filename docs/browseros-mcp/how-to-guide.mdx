@@ -3,81 +3,56 @@ title: "How To Guide"
 description: "Connect BrowserOS as an MCP server to Claude Code or Claude Desktop"
 ---
 
-BrowserOS runs as an MCP server, letting Claude control your browser directly—open tabs, scrape data, fill forms, and more. This guide shows you how to set it up.
+BrowserOS runs as an MCP server, letting Claude control your browser directly—open tabs, scrape data, fill forms, and more.
 
-## Claude Code
+## How to use on Claude Code
 
-### Step 1: Download BrowserOS
+1. [Download BrowserOS from the website](https://files.browseros.com/download)
 
-Download and install BrowserOS for your platform:
+2. Open BrowserOS and open a new tab. Click the settings icon in the top right corner (see screenshot below)
 
-- [macOS](https://files.browseros.com/download/BrowserOS.dmg)
-- [Windows](https://files.browseros.com/download/BrowserOS_installer.exe)
-- [Linux (AppImage)](https://files.browseros.com/download/BrowserOS.AppImage)
-- [Linux (Debian)](https://cdn.browseros.com/download/BrowserOS.deb)
+3. From the settings page, navigate to **MCP** in the sidebar and copy the MCP URL
 
-After installation, complete the [onboarding](/onboarding) and [configure your LLM](/llm-setup-guide).
-
-### Step 2: Enable MCP Server
-
-In BrowserOS, click the settings icon in the top right corner:
-
-![Click settings icon](/docs/images/mcp-click-on-settings-icon.png)
-
-Navigate to **MCP** in the sidebar, toggle **Enable MCP** on, and note the port number from the Server URL:
-
-![Enable MCP and note port](/docs/images/enable-mcp-server.png)
-
-> **Note:** The default port is usually `9225`. You'll need this for the next step.
-
-### Step 3: Install in Claude Code
-
-In your terminal, add BrowserOS as an MCP server (replace `<port>` with your port if different):
-
+4. In your terminal, type:
 ```bash
 claude mcp add --transport http browseros http://127.0.0.1:<port>/mcp
 ```
+Replace `<port>` with your port number from the MCP URL (usually `9225`)
 
-Restart Claude Code and verify the connection:
-
+5. Now start Claude Code:
 ```bash
-/mcp
+claude --dangerously-skip-permissions
 ```
+This way Claude doesn't ask for confirmation each time
 
-You should see BrowserOS listed as a connected MCP server.
-
-### Step 4: Start Using
-
-Try it out! Ask Claude Code to control BrowserOS:
-
+6. You can now type:
 ```
 Open amazon.com on browseros
 ```
 
-Claude can now open tabs, navigate, scrape data, and automate tasks in your browser.
+**Screenshot: Settings icon location**
+
+<div style={{width: '50%'}}>
+
+![Click settings icon](/docs/images/mcp-click-on-settings-icon.png)
+
+</div>
 
 ---
 
-## Claude Desktop
+## How to add on Claude Desktop
 
-If you're using Claude Desktop instead of Claude Code:
+1. [Download BrowserOS from the website](https://files.browseros.com/download)
 
-### Step 1: Locate Config File
+2. Open BrowserOS and click the settings icon. Navigate to **MCP** in the sidebar and note the port number (usually `9225`)
 
-Open your Claude Desktop config file at:
-
+3. Open your Claude Desktop config file:
 ```
 /Users/<username>/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-Replace `<username>` with your actual username.
-
-### Step 2: Add BrowserOS MCP
-
-Add the BrowserOS MCP server to your config:
-
+4. Add BrowserOS to your config:
 ```json
-claude_desktop_config.json
 {
   "mcpServers": {
     "browserOS": {
@@ -87,11 +62,14 @@ claude_desktop_config.json
   }
 }
 ```
+Replace `9225` with your port number if different
 
-> **Note:** Replace `9225` with your MCP port from BrowserOS settings if different.
+5. Restart Claude Desktop. You should see the MCP connection indicator showing BrowserOS is connected
 
-### Step 3: Restart Claude Desktop
+**Screenshot: Settings icon location**
 
-Restart Claude Desktop. You should see the MCP connection indicator showing BrowserOS is connected.
+<div style={{width: '50%'}}>
 
-![browseros-mcp-turned-on.png](/docs/images/browseros-mcp-turned-on.png)
+![Click settings icon](/docs/images/mcp-click-on-settings-icon.png)
+
+</div>
