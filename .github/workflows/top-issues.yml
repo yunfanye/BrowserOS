@@ -1,0 +1,80 @@
+name: Top Issues by Votes
+
+on:
+  schedule:
+    - cron: "0 * * * *"  # Run every hour
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  update-top-issues:
+    runs-on: ubuntu-latest
+    if: github.repository == 'browseros-ai/BrowserOS'
+
+    steps:
+      - name: Update top issues list
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: 169
+        run: |
+          #!/bin/bash
+          set -e
+
+          echo "Fetching all open issues..."
+
+          # Fetch all open issues with reaction data
+          issues=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                issues(first: 100, states: OPEN, orderBy: {field: CREATED_AT, direction: DESC}) {
+                  nodes {
+                    number
+                    title
+                    url
+                    reactions(content: THUMBS_UP) {
+                      totalCount
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner='browseros-ai' -f repo='BrowserOS')
+
+          # Parse and sort issues by thumbs up count
+          sorted_issues=$(echo "$issues" | jq -r --arg ISSUE_NUMBER "$ISSUE_NUMBER" '
+            .data.repository.issues.nodes
+            | map(select(.number != ($ISSUE_NUMBER | tonumber)))
+            | sort_by(-.reactions.totalCount)
+            | to_entries
+            | map("\(.key + 1). [\(.value.title)](\(.value.url)) - \(.value.reactions.totalCount) 👍")
+            | join("\n")
+          ')
+
+          # Create issue body
+          current_time=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          {
+            echo "# 👍 Top Issues by Votes"
+            echo ""
+            echo "This list is automatically updated every hour based on 👍 reactions."
+            echo ""
+            echo "**Last updated:** $current_time"
+            echo ""
+            echo "## Top Issues"
+            echo ""
+            echo "$sorted_issues"
+            echo ""
+            echo "---"
+            echo "🤖 *This issue is automatically updated by [GitHub Actions](.github/workflows/top-issues.yml)*"
+          } > /tmp/issue_body.md
+
+          # Update the tracking issue
+          echo "Updating issue #$ISSUE_NUMBER..."
+          gh issue edit "$ISSUE_NUMBER" \
+            --repo browseros-ai/BrowserOS \
+            --body-file /tmp/issue_body.md
+
+          echo "✅ Successfully updated top issues list!"
