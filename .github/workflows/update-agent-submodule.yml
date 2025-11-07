@@ -34,9 +34,24 @@ jobs:
 
       - name: Update agent submodule
         run: |
-          chmod +x scripts/submodule-update.sh
-          ./scripts/submodule-update.sh main
+          set -e
 
-      - name: Push changes
-        run: |
+          # Fetch latest changes from submodule
+          cd packages/browseros-agent
+          git fetch origin main --tags
+          git checkout main
+          git pull --ff-only origin main
+          cd ../..
+
+          # Check if submodule has new commits
+          if git diff --quiet packages/browseros-agent; then
+            echo "No updates available"
+            exit 0
+          fi
+
+          # Commit and push the submodule update
+          NEW_SHA=$(git -C packages/browseros-agent rev-parse --short HEAD)
+          git add packages/browseros-agent
+          git commit -m "Update browserOS-agent submodule to $NEW_SHA"
           git push origin main
+          echo "Updated submodule to $NEW_SHA"
