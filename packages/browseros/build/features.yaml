@@ -41,13 +41,15 @@ features:
       - chrome/browser/ui/webui/help/sparkle_version_updater_mac.mm
       - chrome/browser/ui/webui/help/version_updater_mac.mm
       - third_party/sparkle/
-  ai-settings-page:
-    description: "feat: llm settings page"
+  settings-page:
+    description: "feat: settings page updates"
     files:
       - chrome/browser/extensions/api/settings_private/prefs_util.cc
       - chrome/browser/prefs/browser_prefs.cc
       - chrome/browser/prefs/browser_prefs.h
       - chrome/browser/resources/settings/BUILD.gn
+      - chrome/browser/resources/settings/browseros_prefs_page/browseros_prefs_page.html
+      - chrome/browser/resources/settings/browseros_prefs_page/browseros_prefs_page.ts
       - chrome/browser/resources/settings/nxtscape_page/models_data.html
       - chrome/browser/resources/settings/nxtscape_page/models_data.ts
       - chrome/browser/resources/settings/nxtscape_page/nxtscape_page.html
@@ -58,6 +60,8 @@ features:
       - chrome/browser/resources/settings/settings_main/settings_main.html
       - chrome/browser/resources/settings/settings_main/settings_main.ts
       - chrome/browser/resources/settings/settings_menu/settings_menu.html
+      - chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
+      - chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
       - chrome/common/pref_names.h
   api:
     description: "feat: browseros API"
@@ -286,23 +290,6 @@ features:
       - chrome/browser/ui/views/side_panel/extensions/extension_side_panel_manager.cc
       - chrome/browser/ui/views/side_panel/side_panel_action_callback.cc
       - chrome/browser/ui/views/side_panel/side_panel_action_callback.h
-  preferences-settings-page:
-    description: "feat: browseros preferences settings page"
-    files:
-      - chrome/browser/extensions/api/settings_private/prefs_util.cc
-      - chrome/browser/prefs/browser_prefs.cc
-      - chrome/browser/resources/settings/BUILD.gn
-      - chrome/browser/resources/settings/browseros_prefs_page/browseros_prefs_page.html
-      - chrome/browser/resources/settings/browseros_prefs_page/browseros_prefs_page.ts
-      - chrome/browser/resources/settings/route.ts
-      - chrome/browser/resources/settings/router.ts
-      - chrome/browser/resources/settings/settings.ts
-      - chrome/browser/resources/settings/settings_main/settings_main.html
-      - chrome/browser/resources/settings/settings_main/settings_main.ts
-      - chrome/browser/resources/settings/settings_menu/settings_menu.html
-      - chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.cc
-      - chrome/browser/ui/views/toolbar/pinned_action_toolbar_button.h
-      - chrome/common/pref_names.h
   ui-fixes:
     description: "fix: chromium ui fixes"
     files:
