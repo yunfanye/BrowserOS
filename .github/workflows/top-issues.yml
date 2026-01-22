@@ -43,13 +43,23 @@ jobs:
             }
           ' -f owner='browseros-ai' -f repo='BrowserOS')
 
-          # Parse and sort issues by thumbs up count
-          sorted_issues=$(echo "$issues" | jq -r --arg ISSUE_NUMBER "$ISSUE_NUMBER" '
+          # Parse and sort RFC issues (titles containing [RFC])
+          sorted_rfcs=$(echo "$issues" | jq -r --arg ISSUE_NUMBER "$ISSUE_NUMBER" '
             .data.repository.issues.nodes
-            | map(select(.number != ($ISSUE_NUMBER | tonumber)))
+            | map(select(.number != ($ISSUE_NUMBER | tonumber) and (.title | contains("[RFC]"))))
             | sort_by(-.reactions.totalCount)
             | to_entries
-            | map("\(.key + 1). [\(.value.title)](\(.value.url)) - \(.value.reactions.totalCount) 👍")
+            | map("\(.key + 1). [\(.value.title)](\(.value.url)) — \(.value.reactions.totalCount) 👍")
+            | join("\n")
+          ')
+
+          # Parse and sort regular issues (excluding RFCs)
+          sorted_issues=$(echo "$issues" | jq -r --arg ISSUE_NUMBER "$ISSUE_NUMBER" '
+            .data.repository.issues.nodes
+            | map(select(.number != ($ISSUE_NUMBER | tonumber) and (.title | contains("[RFC]") | not)))
+            | sort_by(-.reactions.totalCount)
+            | to_entries
+            | map("\(.key + 1). [\(.value.title)](\(.value.url)) — \(.value.reactions.totalCount) 👍")
             | join("\n")
           ')
 
@@ -57,21 +67,38 @@ jobs:
           current_time=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
           {
-            echo "# 👍 Top Issues and Features by Votes"
+            echo "# Community Roadmap"
             echo ""
             echo "This list is automatically updated every hour based on 👍 reactions."
             echo ""
-            echo "## How to Use This List"
+            echo "## How to Vote"
             echo ""
-            echo "**👍 Upvote features you want** - Items with more votes get prioritized."
+            echo "| Action | What it does |"
+            echo "|--------|--------------|"
+            echo "| 👍 on an issue | Adds your vote — we prioritize by vote count |"
+            echo "| 💬 Comment | Your feedback shapes what we build |"
             echo ""
             echo "**Don't see what you need?** Create a new [feature request](https://github.com/browseros-ai/BrowserOS/issues/new) or [bug report](https://github.com/browseros-ai/BrowserOS/issues/new)."
             echo ""
-            echo "Thank you for helping us prioritize!"
-            echo ""
             echo "**Last updated:** $current_time"
             echo ""
-            echo "## Top Issues"
+            echo "---"
+            echo ""
+            echo "## 📣 RFCs — We Need Your Input"
+            echo ""
+            echo "> **These proposals are in review.** Your vote and comments directly influence what gets built."
+            echo ">"
+            echo "> 👍 = Yes, build this &nbsp;|&nbsp; 💬 = Share your use case or feedback"
+            echo ""
+            if [ -n "$sorted_rfcs" ]; then
+              echo "$sorted_rfcs"
+            else
+              echo "*No active RFCs right now. Check back soon!*"
+            fi
+            echo ""
+            echo "---"
+            echo ""
+            echo "## Top Issues & Feature Requests"
             echo ""
             echo "$sorted_issues"
             echo ""
