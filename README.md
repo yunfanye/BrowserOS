@@ -22,10 +22,10 @@
 <br />
 </div>
 
-## 
-🌐 BrowserOS is an open-source chromium fork that runs AI agents natively. **Your open-source, privacy-first alternative to ChatGPT Atlas, Perplexity Comet, Dia**.
+##
+🌐 BrowserOS is an open-source Chromium fork that runs AI agents natively. **The privacy-first alternative to ChatGPT Atlas, Perplexity Comet, and Dia.**
 
-🔒 Privacy first - use your own API keys or run local models with Ollama. Your data stays on your computer.
+🔒 Use your own API keys or run local models with Ollama. Your data never leaves your machine.
 
 💡 Join our [Discord](https://discord.gg/YKwjt5vuKr) or [Slack](https://dub.sh/browserOS-slack) and help us build! Have feature requests? [Suggest here](https://github.com/browseros-ai/BrowserOS/issues/99).
 
@@ -39,17 +39,21 @@
 
 2. Import your Chrome data (optional)
 
-3. Connect your AI provider (OpenAI, Anthropic, or local models via Ollama/LMStudio)
+3. Connect your AI provider — [Gemini](https://aistudio.google.com) is free (20 req/min), or use Claude, OpenAI, or local models via Ollama
 
 4. Start automating!
 
 ## What makes BrowserOS special
-- 🏠 Feels like home - same familiar interface as Google Chrome, works with all your extensions
+- 🏠 Feels like home — same Chrome interface, all your extensions just work
 - 🤖 AI agents that run on YOUR browser, not in the cloud
-- 🔒 Privacy first - bring your own keys or use local models with Ollama. Your browsing history stays on your computer
-- 🚀 Open source and community driven - see exactly what's happening under the hood
-- 🤝 BrowserOS as MCP server - you can install our MCP server and use the browser from within `claude-code` or `gemini-cli`.
-- 🛡️ Built-in AI ad blocker that works across more scenarios!  
+- 🔒 Privacy first — bring your own keys or run local models with Ollama. Your browsing history stays on your machine
+- 🤝 [BrowserOS as MCP server](https://docs.browseros.com/features/use-with-claude-code) — control the browser from `claude-code`, `gemini-cli`, or any MCP client (31 tools)
+- 🔄 [Workflows](https://docs.browseros.com/features/workflows) — build repeatable browser automations with a visual graph builder
+- 📂 [Cowork](https://docs.browseros.com/features/cowork) — combine browser automation with local file operations. Research the web, save reports to your folder
+- ⏰ [Scheduled Tasks](https://docs.browseros.com/features/scheduled-tasks) — run the agent on autopilot, daily or every few minutes
+- 💬 [LLM Hub](https://docs.browseros.com/features/llm-chat-hub) — compare Claude, ChatGPT, and Gemini side-by-side on any page
+- 🛡️ Built-in ad blocker — [10x more protection than Chrome](https://docs.browseros.com/features/ad-blocking) with uBlock Origin + Manifest V2 support
+- 🚀 100% open source under AGPL-3.0
 
 ## Demos
 
@@ -119,7 +123,7 @@ Your browsing data could be used for ads or to train their models. We keep your 
 
 We'd love your help making BrowserOS better!
 
-- 🐛 [Report bugs](https://github.com/nxtscape/nxtscape/issues)
+- 🐛 [Report bugs](https://github.com/browseros-ai/BrowserOS/issues)
 - 💡 [Suggest features](https://github.com/browseros-ai/BrowserOS/issues/99)
 - 💬 [Join Discord](https://discord.gg/YKwjt5vuKr)
 - 🐦 [Follow on Twitter](https://x.com/browserOS_ai)
