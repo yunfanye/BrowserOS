@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/browseros/server/browseros_server_manager.cc b/chrome/browser/browseros/server/browseros_server_manager.cc
 new file mode 100644
-index 0000000000000..7b91e0fdea77d
+index 0000000000000..6d44b32b78ce8
 --- /dev/null
 +++ b/chrome/browser/browseros/server/browseros_server_manager.cc
-@@ -0,0 +1,1060 @@
+@@ -0,0 +1,1061 @@
 +// Copyright 2024 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -338,7 +338,8 @@ index 0000000000000..7b91e0fdea77d
 +  if (proxy_fixed) {
 +    assigned_ports.insert(ports_.proxy);
 +  } else {
-+    ports_.proxy = server_utils::FindAvailablePort(ports_.proxy, assigned_ports);
++    ports_.proxy = server_utils::FindAvailablePort(ports_.proxy, assigned_ports,
++                                                   /*allow_reuse=*/true);
 +    assigned_ports.insert(ports_.proxy);
 +  }
 +

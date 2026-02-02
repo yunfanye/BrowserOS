@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/browseros/server/browseros_server_proxy.cc b/chrome/browser/browseros/server/browseros_server_proxy.cc
 new file mode 100644
-index 0000000000000..a0a6655ba0923
+index 0000000000000..7ffdb8f011b08
 --- /dev/null
 +++ b/chrome/browser/browseros/server/browseros_server_proxy.cc
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,225 @@
 +// Copyright 2024 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -99,6 +99,7 @@ index 0000000000000..a0a6655ba0923
 +}
 +
 +void BrowserOSServerProxy::Stop() {
++  pending_loaders_.clear();
 +  if (server_) {
 +    LOG(INFO) << "browseros: Stopping MCP proxy on port " << bound_port_;
 +    server_.reset();
@@ -146,7 +147,9 @@ index 0000000000000..a0a6655ba0923
 +  server_->Close(connection_id);
 +}
 +
-+void BrowserOSServerProxy::OnClose(int connection_id) {}
++void BrowserOSServerProxy::OnClose(int connection_id) {
++  pending_loaders_.erase(connection_id);
++}
 +
 +void BrowserOSServerProxy::ForwardRequest(
 +    int connection_id,
@@ -180,20 +183,24 @@ index 0000000000000..a0a6655ba0923
 +  loader->SetTimeoutDuration(base::Seconds(300));
 +
 +  auto* loader_ptr = loader.get();
++  pending_loaders_[connection_id] = std::move(loader);
 +  loader_ptr->DownloadToString(
 +      url_loader_factory_.get(),
 +      base::BindOnce(&BrowserOSServerProxy::OnBackendResponse,
-+                     base::Unretained(this), connection_id, std::move(loader)),
++                     base::Unretained(this), connection_id),
 +      kMaxResponseBodySize);
 +}
 +
 +void BrowserOSServerProxy::OnBackendResponse(
 +    int connection_id,
-+    std::unique_ptr<network::SimpleURLLoader> loader,
 +    std::unique_ptr<std::string> response_body) {
-+  if (!server_) {
++  auto it = pending_loaders_.find(connection_id);
++  if (it == pending_loaders_.end() || !server_) {
 +    return;
 +  }
++
++  auto loader = std::move(it->second);
++  pending_loaders_.erase(it);
 +
 +  int response_code = 0;
 +  auto* response_info = loader->ResponseInfo();

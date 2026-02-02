@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/browseros/server/health_checker_impl.cc b/chrome/browser/browseros/server/health_checker_impl.cc
 new file mode 100644
-index 0000000000000..0e3f384250040
+index 0000000000000..73ef5eaf9e8e3
 --- /dev/null
 +++ b/chrome/browser/browseros/server/health_checker_impl.cc
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,145 @@
 +// Copyright 2024 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -73,15 +73,11 @@ index 0000000000000..0e3f384250040
 +      g_browser_process->system_network_context_manager()
 +          ->GetURLLoaderFactory();
 +
-+  // Keep a raw pointer for the callback
-+  auto* url_loader_ptr = url_loader.get();
-+
-+  // Download response headers only (we just need status code)
-+  url_loader_ptr->DownloadHeadersOnly(
++  url_loader_ = std::move(url_loader);
++  url_loader_->DownloadHeadersOnly(
 +      url_loader_factory,
 +      base::BindOnce(&HealthCheckerImpl::OnRequestComplete,
-+                     base::Unretained(this), std::move(url_loader),
-+                     std::move(callback)));
++                     base::Unretained(this), std::move(callback)));
 +}
 +
 +void HealthCheckerImpl::RequestShutdown(
@@ -125,19 +121,14 @@ index 0000000000000..0e3f384250040
 +      g_browser_process->system_network_context_manager()
 +          ->GetURLLoaderFactory();
 +
-+  // Keep a raw pointer for the callback
-+  auto* url_loader_ptr = url_loader.get();
-+
-+  // Download response headers only (we just need status code)
-+  url_loader_ptr->DownloadHeadersOnly(
++  url_loader_ = std::move(url_loader);
++  url_loader_->DownloadHeadersOnly(
 +      url_loader_factory,
 +      base::BindOnce(&HealthCheckerImpl::OnRequestComplete,
-+                     base::Unretained(this), std::move(url_loader),
-+                     std::move(callback)));
++                     base::Unretained(this), std::move(callback)));
 +}
 +
 +void HealthCheckerImpl::OnRequestComplete(
-+    std::unique_ptr<network::SimpleURLLoader> url_loader,
 +    base::OnceCallback<void(bool success)> callback,
 +    scoped_refptr<net::HttpResponseHeaders> headers) {
 +  int response_code = 0;
@@ -147,12 +138,13 @@ index 0000000000000..0e3f384250040
 +
 +  bool success = (response_code == 200);
 +
-+  if (!success) {
-+    int net_error = url_loader->NetError();
++  if (!success && url_loader_) {
++    int net_error = url_loader_->NetError();
 +    LOG(WARNING) << "browseros: HTTP request failed - HTTP " << response_code
 +                 << ", net error: " << net::ErrorToString(net_error);
 +  }
 +
++  url_loader_.reset();
 +  std::move(callback).Run(success);
 +}
 +

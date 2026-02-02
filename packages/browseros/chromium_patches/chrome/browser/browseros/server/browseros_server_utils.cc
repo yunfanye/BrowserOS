@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/browseros/server/browseros_server_utils.cc b/chrome/browser/browseros/server/browseros_server_utils.cc
 new file mode 100644
-index 0000000000000..8fbf4571c47c5
+index 0000000000000..9aca12ed05475
 --- /dev/null
 +++ b/chrome/browser/browseros/server/browseros_server_utils.cc
-@@ -0,0 +1,503 @@
+@@ -0,0 +1,517 @@
 +// Copyright 2024 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -31,6 +31,7 @@ index 0000000000000..8fbf4571c47c5
 +#include "net/base/net_errors.h"
 +#include "net/base/port_util.h"
 +#include "net/log/net_log_source.h"
++#include "net/socket/tcp_server_socket.h"
 +#include "net/socket/tcp_socket.h"
 +
 +#if BUILDFLAG(IS_POSIX)
@@ -73,7 +74,9 @@ index 0000000000000..8fbf4571c47c5
 +// Port Management
 +// =============================================================================
 +
-+int FindAvailablePort(int starting_port, const std::set<int>& excluded) {
++int FindAvailablePort(int starting_port,
++                      const std::set<int>& excluded,
++                      bool allow_reuse) {
 +  LOG(INFO) << "browseros: Finding port starting from " << starting_port;
 +
 +  for (int i = 0; i < kMaxPortAttempts; i++) {
@@ -87,7 +90,7 @@ index 0000000000000..8fbf4571c47c5
 +      continue;
 +    }
 +
-+    if (IsPortAvailable(port_to_try)) {
++    if (IsPortAvailable(port_to_try, allow_reuse)) {
 +      if (port_to_try != starting_port) {
 +        LOG(INFO) << "browseros: Port " << starting_port
 +                  << " was in use or excluded, using " << port_to_try
@@ -105,7 +108,7 @@ index 0000000000000..8fbf4571c47c5
 +  return starting_port;
 +}
 +
-+bool IsPortAvailable(int port) {
++bool IsPortAvailable(int port, bool allow_reuse) {
 +  if (!net::IsPortValid(port) || port == 0) {
 +    return false;
 +  }
@@ -116,6 +119,17 @@ index 0000000000000..8fbf4571c47c5
 +
 +  if (!net::IsPortAllowedForScheme(port, "http")) {
 +    return false;
++  }
++
++  if (allow_reuse) {
++    // Use TCPServerSocket which sets SO_REUSEADDR, allowing bind to succeed
++    // even when the port is in TIME_WAIT (e.g. after a crash). This matches
++    // the actual bind behavior of net::HttpServer.
++    auto socket =
++        std::make_unique<net::TCPServerSocket>(nullptr, net::NetLogSource());
++    int result =
++        socket->ListenWithAddressAndPort("0.0.0.0", port, /*backlog=*/1);
++    return result == net::OK;
 +  }
 +
 +  // Use TCPSocket directly instead of TCPServerSocket to avoid SO_REUSEADDR.

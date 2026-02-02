@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/browseros/server/browseros_server_utils.h b/chrome/browser/browseros/server/browseros_server_utils.h
 new file mode 100644
-index 0000000000000..ca70bb0909aa3
+index 0000000000000..6251f1274bcc6
 --- /dev/null
 +++ b/chrome/browser/browseros/server/browseros_server_utils.h
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,89 @@
 +// Copyright 2024 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -27,10 +27,15 @@ index 0000000000000..ca70bb0909aa3
 +
 +// Finds an available port starting from starting_port.
 +// Skips ports in the excluded set to prevent collisions between services.
-+int FindAvailablePort(int starting_port, const std::set<int>& excluded);
++// When |allow_reuse| is true, the check uses SO_REUSEADDR so that ports in
++// TIME_WAIT (e.g. after a crash) are treated as available.
++int FindAvailablePort(int starting_port,
++                      const std::set<int>& excluded,
++                      bool allow_reuse = false);
 +
 +// Returns true if the specified port is available for binding.
-+bool IsPortAvailable(int port);
++// When |allow_reuse| is true, uses SO_REUSEADDR for the probe.
++bool IsPortAvailable(int port, bool allow_reuse = false);
 +
 +// =============================================================================
 +// Path Utilities

@@ -1,9 +1,9 @@
 diff --git a/chrome/browser/browseros/server/browseros_server_proxy.h b/chrome/browser/browseros/server/browseros_server_proxy.h
 new file mode 100644
-index 0000000000000..1c9b23683fdec
+index 0000000000000..30474fa5001df
 --- /dev/null
 +++ b/chrome/browser/browseros/server/browseros_server_proxy.h
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,78 @@
 +// Copyright 2024 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -14,6 +14,7 @@ index 0000000000000..1c9b23683fdec
 +#include <memory>
 +#include <string>
 +
++#include "base/containers/flat_map.h"
 +#include "base/memory/scoped_refptr.h"
 +#include "net/server/http_server.h"
 +
@@ -67,10 +68,11 @@ index 0000000000000..1c9b23683fdec
 +  void ForwardRequest(int connection_id,
 +                      const net::HttpServerRequestInfo& info);
 +  void OnBackendResponse(int connection_id,
-+                         std::unique_ptr<network::SimpleURLLoader> loader,
 +                         std::unique_ptr<std::string> response_body);
 +
 +  std::unique_ptr<net::HttpServer> server_;
++  base::flat_map<int, std::unique_ptr<network::SimpleURLLoader>>
++      pending_loaders_;
 +  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
 +  int backend_port_ = 0;
 +  int bound_port_ = 0;
