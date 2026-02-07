@@ -44,6 +44,10 @@ app.add_typer(release.app, name="release", help="Release automation")
 from .cli import ota
 app.add_typer(ota.app, name="ota", help="OTA update automation")
 
+# Start command
+from .cli import start
+app.add_typer(start.app, name="start", help="Start BrowserOS browser")
+
 
 if __name__ == "__main__":
     app()
