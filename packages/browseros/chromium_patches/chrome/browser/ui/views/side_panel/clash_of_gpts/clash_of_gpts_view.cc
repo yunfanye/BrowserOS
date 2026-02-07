@@ -95,7 +95,7 @@ index 0000000000000..24eefea8b8860
 +
 +  // Add title
 +  auto* title_label = header->AddChildView(
-+      std::make_unique<views::Label>(u"Clash of GPTs"));
++      std::make_unique<views::Label>(u"Council"));
 +  title_label->SetFontList(title_label->font_list().Derive(
 +      2, gfx::Font::NORMAL, gfx::Font::Weight::MEDIUM));
 +

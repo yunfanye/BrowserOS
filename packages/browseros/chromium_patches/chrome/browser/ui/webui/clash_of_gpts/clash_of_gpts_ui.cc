@@ -50,7 +50,7 @@ index 0000000000000..ce25eefa09ff9
 +<html>
 +<head>
 +  <meta charset="utf-8">
-+  <title>Clash of GPTs</title>
++  <title>Council</title>
 +  <style>
 +    body {
 +      font-family: system-ui, -apple-system, sans-serif;
@@ -69,7 +69,7 @@ index 0000000000000..ce25eefa09ff9
 +</head>
 +<body>
 +  <div class="message">
-+    <h2>Opening Clash of GPTs...</h2>
++    <h2>Opening Council...</h2>
 +    <p>The window should open automatically.</p>
 +  </div>
 +  <script>

@@ -48,7 +48,7 @@ index 0000000000000..7a44fab1879ef
 +}
 +
 +std::u16string ClashOfGptsWindow::GetWindowTitle() const {
-+  return u"Clash of GPTs";
++  return u"Council";
 +}
 +
 +bool ClashOfGptsWindow::CanResize() const {
